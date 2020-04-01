@@ -136,7 +136,7 @@ namespace ATM
                     btn[x, y].SetBounds((x*50)+170, (y*40)+200, 40, 40); // Set size & position
                     F.Controls.Add(btn[x, y]);
                     int k = int.Parse(btn[x, y].Text);
-                    btn[x,y].Click += (sender, EventArgs) => { btn_Click(sender, EventArgs, F,k); };
+                    btn[x,y].Click += (sender, EventArgs) => { btn_Click(sender, EventArgs, F,k,getAccount()); };
                 }
             }
         }
@@ -153,7 +153,7 @@ namespace ATM
             }
             return -1;
         }
-        private void btn_Click(object sender, EventArgs e, Form F, int p)
+        private void btn_Click(object sender, EventArgs e, Form F, int p,int account)
         {
             Form[] bs = new Form[p];
             for (int y = 0; y < p; y++)
@@ -163,6 +163,9 @@ namespace ATM
             for (int y = 0; y < p; y++)
             {
                 Formset(bs[y]);
+                Label accountNum = new Label();
+                accountNum.Text = Convert.ToString(ac[account].getAccountNum());
+                bs[y].Controls.Add(accountNum);
                 Button[,] btn = new Button[3, 3];
                 int st = 1;
                 for (int n = 0; n < 3; n++) // Loop for each button

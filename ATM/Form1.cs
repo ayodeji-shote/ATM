@@ -14,13 +14,14 @@ namespace ATM
     {
         private Account[] ac = new Account[3];
         private ATM1 atm;
+        private DataGridView accountsView;
         public Form1()
         {
             ac[0] = new Account(300, 1111, 111111);
             ac[1] = new Account(750, 2222, 222222);
             ac[2] = new Account(3000, 3333, 333333);
 
-            atm = new ATM1(ac);
+            //atm = new ATM1(ac);
             InitializeComponent();
             startingForm();
         }
@@ -71,9 +72,52 @@ namespace ATM
             this.Hide();
             MultATM(F);
         }
+        private DataGridView createAccountsView(int width)
+        {
 
+            /** 
+             private int balance;
+            private int pin;
+            private int accountNum;
+            public Semaphore semaphore;
+            private int atmCount;
+             */
+            DataGridView accountsDataGridView = new DataGridView();
+            accountsDataGridView.Size = new Size(width, 90);
+            accountsDataGridView.ColumnCount = 3;
+            accountsDataGridView.Columns[0].Name = "Account Number";
+            accountsDataGridView.Columns[1].Name = "Balance";
+            accountsDataGridView.Columns[2].Name = "Atm Count";
+            accountsDataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            accountsDataGridView.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;
+            accountsDataGridView.MultiSelect = false;
+            accountsDataGridView.AllowUserToResizeColumns = false;
+            accountsDataGridView.AllowUserToAddRows = false;
+            accountsDataGridView.AllowUserToDeleteRows = false;
+            accountsDataGridView.AllowUserToResizeRows = false;
+            accountsDataGridView.AllowDrop = false;
+            accountsDataGridView.ReadOnly = true;
+            accountsDataGridView.RowHeadersVisible = false;
+            for (int x = 0; x < accountsDataGridView.ColumnCount; x++)
+            {
+                DataGridViewColumn curCol = accountsDataGridView.Columns[x];
+                curCol.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+                // curCol.Width = width / 3;
+            }
+            for (int x = 0; x < ac.Length; x++)
+            {
+                string[] curRow = new string[4];
+                curRow[0] = Convert.ToString(ac[x].getAccountNum());
+                curRow[1] = Convert.ToString(ac[x].getBalance());
+                curRow[2] = Convert.ToString(ac[x].getAtmCount());
+                accountsDataGridView.Rows.Add(curRow);
+            }
+            return accountsDataGridView;
+        }
         public void MultATM(Form F)
         {
+            accountsView = createAccountsView(F.Width);
+            F.Controls.Add(accountsView);
             Label mylab = new Label();
             mylab.Text = " How many ATM's do you want to simulate ";
             mylab.AutoSize = true;
@@ -95,6 +139,19 @@ namespace ATM
                     btn[x,y].Click += (sender, EventArgs) => { btn_Click(sender, EventArgs, F,k); };
                 }
             }
+        }
+        private int getAccount()
+        {
+            string accNumberAsString = Convert.ToString(accountsView.SelectedRows[0].Cells[0].Value);
+            int accNumber = Convert.ToInt32(accNumberAsString);
+            for (int x = 0; x < ac.Length; x++)
+            {
+                if (ac[x].getAccountNum() == accNumber)
+                {
+                    return x;
+                }
+            }
+            return -1;
         }
         private void btn_Click(object sender, EventArgs e, Form F, int p)
         {
@@ -257,15 +314,28 @@ namespace ATM
         private int balance;
         private int pin;
         private int accountNum;
-
+        private int atmCount;
         // a constructor that takes initial values for each of the attributes (balance, pin, accountNumber)
         public Account(int balance, int pin, int accountNum)
         {
             this.balance = balance;
             this.pin = pin;
             this.accountNum = accountNum;
+            this.atmCount = 0;
         }
-
+        public int getAtmCount()
+        {
+            return atmCount;
+        }
+        public int incrementAtmCount()
+        {
+            atmCount++;
+            return atmCount;
+        }
+        public void setAtmCount(int input)
+        {
+            atmCount = input;
+        }
         //getter and setter functions for balance
         public int getBalance()
         {

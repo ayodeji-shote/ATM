@@ -12,8 +12,15 @@ namespace ATM
 {
     public partial class Form1 : Form
     {
+        private Account[] ac = new Account[3];
+        private ATM1 atm;
         public Form1()
         {
+            ac[0] = new Account(300, 1111, 111111);
+            ac[1] = new Account(750, 2222, 222222);
+            ac[2] = new Account(3000, 3333, 333333);
+
+            atm = new ATM1(ac);
             InitializeComponent();
             startingForm();
         }
@@ -107,7 +114,7 @@ namespace ATM
                     {
                         btn[x, n] = new Button(); // Create button
                         btn[x, n].Text = st++.ToString();
-                        btn[x, n].SetBounds((x * 60) + 140, (n * 50) + 240, 50, 50); // Set size & position
+                        btn[x, n].SetBounds((x * 60) + 110, (n * 50) + 210, 50, 50); // Set size & position
                         bs[y].Controls.Add(btn[x, n]);
                         int k = int.Parse(btn[x, n].Text);
                     }
@@ -126,9 +133,9 @@ namespace ATM
             btt[0].Text = "00";
             btt[1].Text = "0";
             btt[2].Text = ".";
-            btt[0].SetBounds(140, 390, 50, 50); // Set size & position
-            btt[1].SetBounds(200, 390, 50, 50);
-            btt[2].SetBounds(260, 390, 50, 50);
+            btt[0].SetBounds(110, 360, 50, 50); // Set size & position
+            btt[1].SetBounds(170, 360, 50, 50);
+            btt[2].SetBounds(230, 360, 50, 50);
             bs[s].Controls.Add(btt[0]);
             bs[s].Controls.Add(btt[1]);
             bs[s].Controls.Add(btt[2]);
@@ -141,9 +148,9 @@ namespace ATM
             btt[1] = new Button();
             btt[2] = new Button();
             btt[3] = new Button();
-            btt[0].Font = new Font("Calibri", 6);
-            btt[1].Font = new Font("Calibri", 7);
-            btt[2].Font = new Font("Calibri", 7);
+            btt[0].Font = new Font("Calibri", 10);
+            btt[1].Font = new Font("Calibri", 10);
+            btt[2].Font = new Font("Calibri", 10);
             btt[0].Text = "Cancel";
             btt[1].Text = "Clear";
             btt[2].Text = "Enter";
@@ -159,10 +166,10 @@ namespace ATM
             btt[2].FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             btt[2].FlatAppearance.BorderSize = 0;
 
-            btt[0].SetBounds(330, 243, 70, 40); // Set size & position
-            btt[1].SetBounds(330, 292, 70, 40);
-            btt[2].SetBounds(330, 344, 70, 40);
-            btt[3].SetBounds(330, 396, 70, 40);
+            btt[0].SetBounds(300, 213, 70, 40); // Set size & position
+            btt[1].SetBounds(300, 262, 70, 40);
+            btt[2].SetBounds(300, 314, 70, 40);
+            btt[3].SetBounds(300, 366, 70, 40);
 
             bs[s].Controls.Add(btt[0]);
             bs[s].Controls.Add(btt[1]);
@@ -171,11 +178,27 @@ namespace ATM
             bs[s].Show();
 
             Label mylab = new Label();
-            mylab.BackColor = Color.Red;
-            mylab.SetBounds(140, 80, 260, 110);
+            mylab.BackColor = Color.LightGray;
+            mylab.SetBounds(110, 20, 260, 180);
             bs[s].Controls.Add(mylab);
+            sideButtons(bs, s);
 
         }
+        public void sideButtons(Form[] bs, int s)
+        {
+            Button[,] btn = new Button[2,3];
+            for (int n = 0; n < 3; n++) // Loop for each button
+            {
+                for (int x = 0; x < 2; x++) // Loop for y
+                {
+                    btn[x, n] = new Button(); // Create button
+                    btn[x, n].SetBounds((x * 310) + 60, (n * 65) + 20, 50, 50); // Set size & position
+                    bs[s].Controls.Add(btn[x, n]);
+                }
+            }
+
+
+    }
         private void MyB2_Click(object sender, EventArgs e, Form F)
         {
             Formset(F);
@@ -188,6 +211,7 @@ namespace ATM
             pl.Height = 500;
             pl.MaximumSize = this.Size;
             pl.MinimumSize = this.Size;
+            pl.BackColor = Color.White;
             return pl;
         }
 
@@ -202,7 +226,7 @@ namespace ATM
     class Program1
     {
         private Account[] ac = new Account[3];
-        private ATM atm;
+        private ATM1 atm;
        
         /*
          * This function initilises the 3 accounts 
@@ -215,7 +239,7 @@ namespace ATM
             ac[1] = new Account(750, 2222, 222222);
             ac[2] = new Account(3000, 3333, 333333);
 
-            atm = new ATM(ac);
+            atm = new ATM1(ac);
 
         }
 
@@ -303,7 +327,7 @@ namespace ATM
      *      
      *      the constutor contains the main funcitonality.
      */
-    class ATM
+    class ATM1
     {
         //local referance to the array of accounts
         private Account[] ac;
@@ -312,7 +336,7 @@ namespace ATM
         private Account activeAccount = null;
         
         // the atm constructor takes an array of account objects as a referance
-        public ATM(Account[] ac)
+        public ATM1(Account[] ac)
         {
             this.ac = ac;
             Console.WriteLine("hello from ATM");

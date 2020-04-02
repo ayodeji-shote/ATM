@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -15,6 +17,7 @@ namespace ATM
         private Account[] ac = new Account[3];
         private ATM1 atm;
         private DataGridView accountsView;
+
         public Form1()
         {
             ac[0] = new Account(300, 1111, 111111);
@@ -42,7 +45,7 @@ namespace ATM
             mylab.AutoSize = true;
             mylab.Font = new Font("Calibri", 25);
             mylab.ForeColor = Color.Black;
-            mylab.Location = new Point(this.Width/5, 90);
+            mylab.Location = new Point(this.Width / 5, 90);
             this.Controls.Add(mylab);
             Button MyB = new Button();
             Button MyB2 = new Button();
@@ -114,6 +117,7 @@ namespace ATM
             }
             return accountsDataGridView;
         }
+
         public void MultATM(Form F)
         {
             accountsView = createAccountsView(F.Width);
@@ -133,14 +137,14 @@ namespace ATM
                 {
                     btn[x, y] = new Button(); // Create button
                     btn[x, y].Text = st++.ToString();
-                    btn[x, y].SetBounds((x*50)+170, (y*40)+200, 40, 40); // Set size & position
+                    btn[x, y].SetBounds((x * 50) + 170, (y * 40) + 200, 40, 40); // Set size & position
                     F.Controls.Add(btn[x, y]);
                     int k = int.Parse(btn[x, y].Text);
-                    btn[x,y].Click += (sender, EventArgs) => { btn_Click(sender, EventArgs, F,k,getAccount()); };
+                    btn[x, y].Click += (sender, EventArgs) => { btn_Click(sender, EventArgs, F, k, getAccount()); };
                 }
             }
         }
-        private int getAccount()
+        private int getAccount() // TODO: change this 
         {
             string accNumberAsString = Convert.ToString(accountsView.SelectedRows[0].Cells[0].Value);
             int accNumber = Convert.ToInt32(accNumberAsString);
@@ -153,112 +157,41 @@ namespace ATM
             }
             return -1;
         }
-        private void btn_Click(object sender, EventArgs e, Form F, int p,int account)
+        private void btn_Click(object sender, EventArgs e, Form F, int p, int account)
         {
-            Form[] bs = new Form[p];
+            ATMForm[] bs = new ATMForm[p];
+
+            //Form[] bs = new Form[p];
             for (int y = 0; y < p; y++)
             {
-                bs[y] = new Form();
-            }
-            for (int y = 0; y < p; y++)
-            {
-                Formset(bs[y]);
-                Label accountNum = new Label();
-                accountNum.Text = Convert.ToString(ac[account].getAccountNum());
-                bs[y].Controls.Add(accountNum);
-                Button[,] btn = new Button[3, 3];
-                int st = 1;
-                for (int n = 0; n < 3; n++) // Loop for each button
+                //break;
+                new Thread(new ThreadStart(delegate
                 {
-                    for (int x = 0; x < 3; x++) // Loop for y
+                    Application.Run(new ATMForm(accountCheck));
+                })).Start();
+                //bs[y] = new ATMForm();
+                //bs[y].FormClosed += (sender2, EventArgs) => { atmClose(sender2, EventArgs, account); Debug.Print("test"); };
+
+            }
+        }
+        public bool accountCheck(string[] accNumAndPin)
+        {
+            for (int x = 0; x < ac.Length; x++)
+            {
+                if (ac[x].getAccountNum() == Convert.ToInt32(accNumAndPin[0]))
+                {
+                    if (ac[x].checkPin(Convert.ToInt32(accNumAndPin[1])))
                     {
-                        btn[x, n] = new Button(); // Create button
-                        btn[x, n].Text = st++.ToString();
-                        btn[x, n].SetBounds((x * 60) + 110, (n * 50) + 210, 50, 50); // Set size & position
-                        bs[y].Controls.Add(btn[x, n]);
-                        int k = int.Parse(btn[x, n].Text);
+                        return true;
                     }
                 }
-                ATMMaker(bs,y);
-                Optionmaker(bs, y);
             }
-            F.Hide();
+            return false;
         }
-        public void ATMMaker(Form[] bs,int s)
+        public void atmClose(object sender2, EventArgs e, int account)
         {
-            Button[] btt = new Button[3];
-            btt[0] = new Button();
-            btt[1] = new Button();
-            btt[2] = new Button();
-            btt[0].Text = "00";
-            btt[1].Text = "0";
-            btt[2].Text = ".";
-            btt[0].SetBounds(110, 360, 50, 50); // Set size & position
-            btt[1].SetBounds(170, 360, 50, 50);
-            btt[2].SetBounds(230, 360, 50, 50);
-            bs[s].Controls.Add(btt[0]);
-            bs[s].Controls.Add(btt[1]);
-            bs[s].Controls.Add(btt[2]);
-            bs[s].Show();
+            ac[account].decrementAtmCount();
         }
-        public void Optionmaker(Form[] bs, int s)
-        {
-            Button[] btt = new Button[4];
-            btt[0] = new Button();
-            btt[1] = new Button();
-            btt[2] = new Button();
-            btt[3] = new Button();
-            btt[0].Font = new Font("Calibri", 10);
-            btt[1].Font = new Font("Calibri", 10);
-            btt[2].Font = new Font("Calibri", 10);
-            btt[0].Text = "Cancel";
-            btt[1].Text = "Clear";
-            btt[2].Text = "Enter";
-            btt[0].BackColor = Color.Red;
-            btt[0].FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            btt[0].FlatAppearance.BorderSize = 0;
-
-            btt[1].BackColor = Color.Yellow;
-            btt[1].FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            btt[1].FlatAppearance.BorderSize = 0;
-
-            btt[2].BackColor = Color.Green;
-            btt[2].FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            btt[2].FlatAppearance.BorderSize = 0;
-
-            btt[0].SetBounds(300, 213, 70, 40); // Set size & position
-            btt[1].SetBounds(300, 262, 70, 40);
-            btt[2].SetBounds(300, 314, 70, 40);
-            btt[3].SetBounds(300, 366, 70, 40);
-
-            bs[s].Controls.Add(btt[0]);
-            bs[s].Controls.Add(btt[1]);
-            bs[s].Controls.Add(btt[2]);
-            bs[s].Controls.Add(btt[3]);
-            bs[s].Show();
-
-            Label mylab = new Label();
-            mylab.BackColor = Color.LightGray;
-            mylab.SetBounds(110, 20, 260, 180);
-            bs[s].Controls.Add(mylab);
-            sideButtons(bs, s);
-
-        }
-        public void sideButtons(Form[] bs, int s)
-        {
-            Button[,] btn = new Button[2,3];
-            for (int n = 0; n < 3; n++) // Loop for each button
-            {
-                for (int x = 0; x < 2; x++) // Loop for y
-                {
-                    btn[x, n] = new Button(); // Create button
-                    btn[x, n].SetBounds((x * 310) + 60, (n * 65) + 20, 50, 50); // Set size & position
-                    bs[s].Controls.Add(btn[x, n]);
-                }
-            }
-
-
-    }
         private void MyB2_Click(object sender, EventArgs e, Form F)
         {
             Formset(F);
@@ -277,17 +210,301 @@ namespace ATM
 
 
     }
-     /*
-     *   This is the root of program and the entry point
-     * 
-     *   Class programm contains an array of account objects and a singel ATM object  
-     * 
-     */
+    /*
+    *   This is the root of program and the entry point
+    * 
+    *   Class programm contains an array of account objects and a singel ATM object  
+    * 
+    */
+    public partial class ATMForm : Form
+    {
+        private Panel screenBack;
+        private Label accountNumberTextBox;
+        private Label pinNumberTextBox;
+        private Button[] controlButtons;
+        private bool loggedIn = false;
+        private Label infoMessageLabel;
+        private Label loginScreenLabel;
+        private Button[,] numberButtons;
+        private Func<string[], bool> accountCheck;
+        private Button[,] buttonsSide;
+        public ATMForm(Func<string[], bool> accCheck)
+        {
+            this.accountCheck = accCheck;
+
+            Formset(this);
+            numberButtons = new Button[3, 3];
+            int st = 1;
+            for (int n = 0; n < 3; n++) // Loop for each button
+            {
+                for (int x = 0; x < 3; x++) // Loop for y
+                {
+                    numberButtons[x, n] = new Button(); // Create button
+                    numberButtons[x, n].Text = st++.ToString();
+                    numberButtons[x, n].SetBounds((x * 60) + 110, (n * 50) + 210, 50, 50); // Set size & position
+                    int cur = st;
+                    numberButtons[x, n].Click += (sender, EventArgs) => { numberButtonHandler(sender, EventArgs, cur - 1); };
+                    this.Controls.Add(numberButtons[x, n]);
+                    int k = int.Parse(numberButtons[x, n].Text);
+                }
+            }
+            ATMMaker();
+            Optionmaker();
+            sideButtons();
+            addAtmScreen();
+            Label t = new Label();
+            t.Text = Convert.ToString(Thread.CurrentThread.ManagedThreadId);
+            t.Location = new Point(Width / 2, 0);
+            Controls.Add(t); //TODO: remove
+        }
+        private void numberButtonHandler(object sender, EventArgs e, int num)
+        {
+            if (this.accountNumberTextBox.Visible == true)
+            {
+                if (this.accountNumberTextBox.Text.Length == 6)
+                {
+                    return;
+                }
+                this.accountNumberTextBox.Text += Convert.ToString(num);
+            }
+            else if (this.pinNumberTextBox.Visible == true)
+            {
+                if (this.pinNumberTextBox.Text.Length == 4)
+                {
+                    return;
+                }
+                this.pinNumberTextBox.Text += Convert.ToString(num);
+
+            }
+            //Debug.Print(Convert.ToString(num));
+
+        }
+        private void ATMForm_Load(object sender, EventArgs e)
+        {
+
+
+        }
+        public Form Formset(Form pl)
+        {
+            pl.Width = 500;
+            pl.Height = 500;
+            pl.MaximumSize = this.Size;
+            pl.MinimumSize = this.Size;
+            pl.BackColor = Color.White;
+            return pl;
+        }
+
+        public void atmClose(object sender2, EventArgs e, int account)
+        {
+            //ac[account].decrementAtmCount();
+        }
+        public void ATMMaker()
+        {
+            //TODO: ADD HANDLERS
+            Button[] btt = new Button[3];
+            btt[0] = new Button();
+            btt[1] = new Button();
+            btt[2] = new Button();
+            btt[0].Text = "00";
+            btt[1].Text = "0";
+            btt[2].Text = ".";
+            btt[0].SetBounds(110, 360, 50, 50); // Set size & position
+            btt[1].SetBounds(170, 360, 50, 50);
+            btt[2].SetBounds(230, 360, 50, 50);
+            Controls.Add(btt[0]);
+            Controls.Add(btt[1]);
+            Controls.Add(btt[2]);
+            Show();
+        }
+        public void Optionmaker()
+        {
+            controlButtons = new Button[4];
+            controlButtons[0] = new Button();
+            controlButtons[1] = new Button();
+            controlButtons[2] = new Button();
+            controlButtons[3] = new Button();
+            controlButtons[0].Font = new Font("Calibri", 10);
+            controlButtons[1].Font = new Font("Calibri", 10);
+            controlButtons[2].Font = new Font("Calibri", 10);
+            controlButtons[0].Text = "Cancel";
+            controlButtons[1].Text = "Clear";
+            controlButtons[2].Text = "Enter";
+            controlButtons[0].BackColor = Color.Red;
+            controlButtons[0].FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            controlButtons[0].FlatAppearance.BorderSize = 0;
+
+            controlButtons[1].BackColor = Color.Yellow;
+            controlButtons[1].FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            controlButtons[1].FlatAppearance.BorderSize = 0;
+
+            controlButtons[2].BackColor = Color.Green;
+            controlButtons[2].FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            controlButtons[2].FlatAppearance.BorderSize = 0;
+
+            controlButtons[0].SetBounds(300, 213, 70, 40); // Set size & position
+            controlButtons[1].SetBounds(300, 262, 70, 40);
+            controlButtons[2].SetBounds(300, 314, 70, 40);
+            controlButtons[3].SetBounds(300, 366, 70, 40);
+
+            Controls.Add(controlButtons[0]);
+            Controls.Add(controlButtons[1]);
+            Controls.Add(controlButtons[2]);
+            Controls.Add(controlButtons[3]);
+
+
+
+            // enter 
+            controlButtons[2].Click += (sender, EventArgs) => { enterButtonHandler(sender, EventArgs); };
+            Show();
+
+        }
+        private void enterButtonHandler(object sender, EventArgs e)
+        {
+            if (this.loggedIn == false) // we are in login 
+            {
+                if (this.pinNumberTextBox.Visible == false)
+                {
+                    //we are dealing with an account number input
+                    if (this.accountNumberTextBox.Text.Length < 6)
+                    {
+                        this.infoMessageLabel.Text = "YOUR ACCOUNT NUMBER MUST BE AT LEAST 6 DIGITS";
+                        if (this.infoMessageLabel.Visible == false)
+                        {
+                            this.infoMessageLabel.Show();
+
+                        }
+                        //TODO: hide after certain time ?
+
+                    }
+                    else
+                    {
+                        this.accountNumberTextBox.Hide();
+                        this.pinNumberTextBox.Show();
+                        this.loginScreenLabel.Text = "Enter Pin Number";
+                    }
+
+                }
+                else
+                {
+                    string[] accAndPin = new string[2];
+                    accAndPin[0] = this.accountNumberTextBox.Text;
+                    accAndPin[1] = this.pinNumberTextBox.Text;
+                    if (this.accountCheck(accAndPin))
+                    {
+                        loggedIn = true;
+                        Debug.Print("VALID ACCOUNT");
+                        baseMenuScreen();
+                    }
+                    else
+                    {
+                        //TODO: INVALID ACCOUNT AND PIN COMBINATION STUFF HERE
+                        loginAtmScreen();
+                    }
+                }
+            }
+            else
+            {
+
+            }
+        }
+        public void addAtmScreen()
+        {
+            screenBack = new Panel();
+            screenBack.BackColor = Color.LightGray;
+            screenBack.SetBounds(110, 20, 260, 180);
+            Controls.Add(screenBack);
+            loginAtmScreen();
+
+        }
+        private void baseMenuScreen()
+        {
+            screenBack.Controls.Clear();
+        }
+        private void loginAtmScreen()
+        {
+
+
+            screenBack.Controls.Clear();
+            infoMessageLabel = new Label();
+            infoMessageLabel.Width = screenBack.Width;
+            infoMessageLabel.BorderStyle = BorderStyle.None;
+            infoMessageLabel.ForeColor = Color.Red;
+            infoMessageLabel.TextAlign = ContentAlignment.MiddleCenter;
+            infoMessageLabel.AutoSize = false;
+            infoMessageLabel.Hide();
+            screenBack.Controls.Add(infoMessageLabel);
+            pinNumberTextBox = new Label();
+            accountNumberTextBox = new Label();
+
+            screenBack.Controls.Add(accountNumberTextBox);
+            accountNumberTextBox.Width = screenBack.Width / 2;
+            accountNumberTextBox.Location = new Point((screenBack.Width / 2) - accountNumberTextBox.Width / 2, screenBack.Height / 2);
+            accountNumberTextBox.TextAlign = ContentAlignment.MiddleCenter;
+            screenBack.Controls.Add(pinNumberTextBox);
+            pinNumberTextBox.Hide();
+            loginScreenLabel = new Label();
+            loginScreenLabel.Location = new Point(accountNumberTextBox.Location.X, accountNumberTextBox.Location.Y - accountNumberTextBox.Height);
+            loginScreenLabel.Text = "Enter Account Number";
+            loginScreenLabel.TextAlign = ContentAlignment.MiddleCenter;
+            loginScreenLabel.Width = accountNumberTextBox.Width;
+            screenBack.Controls.Add(loginScreenLabel);
+            pinNumberTextBox.Width = screenBack.Width / 2;
+            pinNumberTextBox.Location = new Point((screenBack.Width / 2) - pinNumberTextBox.Width / 2, screenBack.Height / 2);
+            pinNumberTextBox.TextAlign = ContentAlignment.MiddleCenter;
+
+
+        }
+        public void sideButtons()
+        {
+            buttonsSide = new Button[2, 3];
+            for (int n = 0; n < 3; n++) // Loop for each button
+            {
+                for (int x = 0; x < 2; x++) // Loop for y
+                {
+                    buttonsSide[x, n] = new Button(); // Create button
+                    buttonsSide[x, n].SetBounds((x * 310) + 60, (n * 65) + 20, 50, 50); // Set size & position
+                    buttonsSide[x, n].Text = Convert.ToString(x) + " " + Convert.ToString(n); //TODO : REMOVE
+                    Controls.Add(buttonsSide[x, n]);
+                }
+            }
+
+
+        }
+        private void sideButtonsHandler(object sender, EventArgs e, int one, int two)
+        {
+            if (one == 0) // left side
+            {
+                switch (two)
+                {
+                    case 0: // top left
+                        break;
+                    case 1: // middle left
+                        break;
+                    case 2: // bottom left
+                        break;
+                }
+            }
+            else // right side
+            {
+                switch (two)
+                {
+                    case 0: // top right
+                        break;
+                    case 1: // middle right
+                        break;
+                    case 2: // bottom right
+                        break;
+                }
+
+            }
+        }
+    }
+
     class Program1
     {
         private Account[] ac = new Account[3];
         private ATM1 atm;
-       
+
         /*
          * This function initilises the 3 accounts 
          * and instanciates the ATM class passing a referance to the account information
@@ -310,7 +527,7 @@ namespace ATM
     }
     /*
      *   The Account class encapusulates all features of a simple bank account
-     */ 
+     */
     class Account
     {
         //the attributes for the account
@@ -338,6 +555,10 @@ namespace ATM
         public void setAtmCount(int input)
         {
             atmCount = input;
+        }
+        public void decrementAtmCount()
+        {
+            atmCount--; // TODO: checking ?
         }
         //getter and setter functions for balance
         public int getBalance()
@@ -407,7 +628,7 @@ namespace ATM
 
         //this is a referance to the account that is being used
         private Account activeAccount = null;
-        
+
         // the atm constructor takes an array of account objects as a referance
         public ATM1(Account[] ac)
         {
@@ -454,7 +675,7 @@ namespace ATM
         private Account findAccount()
         {
             Console.WriteLine("enter your account number..");
-            
+
             int input = Convert.ToInt32(Console.ReadLine());
 
             for (int i = 0; i < this.ac.Length; i++)
@@ -508,8 +729,8 @@ namespace ATM
             }
             else if (input == 3)
             {
-                
-             
+
+
             }
             else
             {
@@ -542,16 +763,18 @@ namespace ATM
 
                     //attempt to decrement account by 10 punds
                     if (activeAccount.decrementBalance(10))
-                    {   
+                    {
                         //if this is possible display new balance and await key press
                         Console.WriteLine("new balance " + activeAccount.getBalance());
                         Console.WriteLine(" (prese enter to continue)");
                         Console.ReadLine();
-                    }else{
+                    }
+                    else
+                    {
                         //if this is not possible inform user and await key press
-                         Console.WriteLine("insufficent funds");
-                         Console.WriteLine(" (prese enter to continue)");
-                         Console.ReadLine();
+                        Console.WriteLine("insufficent funds");
+                        Console.WriteLine(" (prese enter to continue)");
+                        Console.ReadLine();
                     }
                 }
                 else if (input == 2)
@@ -590,14 +813,15 @@ namespace ATM
          *  display balance of activeAccount and await keypress
          *  
          */
-        private void dispBalance(){
+        private void dispBalance()
+        {
             if (this.activeAccount != null)
             {
-                Console.WriteLine(" your current balance is : "+activeAccount.getBalance());
+                Console.WriteLine(" your current balance is : " + activeAccount.getBalance());
                 Console.WriteLine(" (prese enter to continue)");
                 Console.ReadLine();
             }
         }
-        
+
     }
 }

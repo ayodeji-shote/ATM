@@ -17,29 +17,26 @@ namespace ATM
         private Account[] ac = new Account[3];
         private ATM1 atm;
         private DataGridView accountsView;
+        Form menuForm;
 
         public Form1()
         {
             ac[0] = new Account(300, 1111, 111111);
             ac[1] = new Account(750, 2222, 222222);
             ac[2] = new Account(3000, 3333, 333333);
-
-            //atm = new ATM1(ac);
             InitializeComponent();
             startingForm();
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-
             Formset(this);
-
         }
 
 
         public void startingForm()
         {
-            Form f = new Form();
+            menuForm = new Form();
             Label mylab = new Label();
             mylab.Text = " ATM simulator ";
             mylab.AutoSize = true;
@@ -63,17 +60,128 @@ namespace ATM
             MyB2.Font = new Font("Calibri", 18);
             MyB2.Location = new Point(130, 280);
             this.Controls.Add(MyB2);
-            MyB.Click += (sender, EventArgs) => { MyB_Click(sender, EventArgs, f); }; // this sets the button click to the event handler.
-            MyB2.Click += (sender, EventArgs) => { MyB_Click(sender, EventArgs, f); }; // this sets the button click to the event handler.
+            MyB.Click += (sender, EventArgs) => { MyB_Click(sender, EventArgs); }; // this sets the button click to the event handler.
+            MyB2.Click += (sender, EventArgs) => { MyB_Click(sender, EventArgs); }; // this sets the button click to the event handler.
 
         }
 
-        private void MyB_Click(object sender, EventArgs e, Form F)
+        private void MyB_Click(object sender, EventArgs e)
+        {
+            MenuForm menuForm = new MenuForm(ac,accountCheck,getAccount);
+            this.Hide();
+        }
+        
+        public Account getAccount(int accountNumber)
+        {
+            int a = 0;
+            for(int x=0; x< ac.Length; x++)
+            {
+                if (ac[x].getAccountNum() == accountNumber)
+                {
+                    a = x;
+                }
+            }
+            return ac[a];
+        }
+        public bool accountCheck(string[] accNumAndPin)
+        {
+            for (int x = 0; x < ac.Length; x++)
+            {
+                if (ac[x].getAccountNum() == Convert.ToInt32(accNumAndPin[0]))
+                {
+                    if (ac[x].checkPin(Convert.ToInt32(accNumAndPin[1])))
+                    {
+                        ac[x].incrementAtmCount();
+                        //this.accountsView.Invoke(new MethodInvoker(delegate
+                        //{
+                        //    updateAccounts();
+                        //}));
+
+                        return true;
+                    }
+                    return false;
+
+                }
+            }
+            return false;
+        }
+        private void updateAccounts()
+        {
+            updateDataGridHandler();
+        }
+        private void updateDataGridHandler()
+        {
+            menuForm.Controls.Clear();
+        }
+        public void atmClose(object sender2, EventArgs e, int account)
+        {
+            ac[account].decrementAtmCount();
+        }
+        private void MyB2_Click(object sender, EventArgs e, Form F)
         {
             Formset(F);
             F.Show();
             this.Hide();
-            MultATM(F);
+        }
+        public Form Formset(Form pl)
+        {
+            pl.Width = 500;
+            pl.Height = 500;
+            pl.MaximumSize = this.Size;
+            pl.MinimumSize = this.Size;
+            pl.BackColor = Color.White;
+            return pl;
+        }
+
+
+    }
+    public partial class MenuForm : Form
+    {
+        private DataGridView accountsView;
+        private Account[] ac;
+        Func<string[], bool> accountCheck;
+        Func<int, Account> getAccount;
+        public MenuForm(Account[] accs,Func<string[],bool> accCheck,Func<int,Account> getAcc)
+        {
+            this.accountCheck = accCheck;
+            this.getAccount = getAcc;
+            ac = accs;
+            Formset();
+            this.Show();
+            accountsView = createAccountsView(this.Width);
+            Controls.Add(accountsView);
+            Label mylab = new Label();
+            mylab.Text = " How many ATM's do you want to simulate ";
+            mylab.AutoSize = true;
+            mylab.Font = new Font("Calibri", 20);
+            mylab.ForeColor = Color.Black;
+            mylab.Location = new Point(0, 90);
+            Controls.Add(mylab);
+            Button[,] btn = new Button[3, 3];
+            int st = 1;
+            for (int y = 0; y < 3; y++) // Loop for each button
+            {
+                for (int x = 0; x < 3; x++) // Loop for y
+                {
+                    btn[x, y] = new Button(); // Create button
+                    btn[x, y].Text = st++.ToString();
+                    btn[x, y].SetBounds((x * 50) + 170, (y * 40) + 200, 40, 40); // Set size & position
+                    Controls.Add(btn[x, y]);
+                    int k = int.Parse(btn[x, y].Text);
+                    btn[x, y].Click += (sender, EventArgs) => { btn_Click(sender, EventArgs, this, k); };
+                }
+            }
+
+        }
+         private void btn_Click(object sender, EventArgs e, Form F, int p)
+        {
+            for (int y = 0; y < p; y++)
+            {
+                new Thread(new ThreadStart(delegate
+                {
+                   Application.Run(new ATMForm(accountCheck,getAccount));
+                })).Start();
+            }
         }
         private DataGridView createAccountsView(int width)
         {
@@ -114,108 +222,20 @@ namespace ATM
                 curRow[1] = Convert.ToString(ac[x].getBalance());
                 curRow[2] = Convert.ToString(ac[x].getAtmCount());
                 accountsDataGridView.Rows.Add(curRow);
+                Debug.Print(Convert.ToString(ac[x].getAccountNum()) + " " + Convert.ToString(ac[x].getAtmCount()));
             }
             return accountsDataGridView;
         }
+        private void Formset()
+        {
+            this.Width = 500;
+            this.Height = 500;
+            this.MaximumSize = this.Size;
+            this.MinimumSize = this.Size;
+            this.BackColor = Color.White;
 
-        public void MultATM(Form F)
-        {
-            accountsView = createAccountsView(F.Width);
-            F.Controls.Add(accountsView);
-            Label mylab = new Label();
-            mylab.Text = " How many ATM's do you want to simulate ";
-            mylab.AutoSize = true;
-            mylab.Font = new Font("Calibri", 20);
-            mylab.ForeColor = Color.Black;
-            mylab.Location = new Point(0, 90);
-            F.Controls.Add(mylab);
-            Button[,] btn = new Button[3, 3];
-            int st = 1;
-            for (int y = 0; y < 3; y++) // Loop for each button
-            {
-                for (int x = 0; x < 3; x++) // Loop for y
-                {
-                    btn[x, y] = new Button(); // Create button
-                    btn[x, y].Text = st++.ToString();
-                    btn[x, y].SetBounds((x * 50) + 170, (y * 40) + 200, 40, 40); // Set size & position
-                    F.Controls.Add(btn[x, y]);
-                    int k = int.Parse(btn[x, y].Text);
-                    btn[x, y].Click += (sender, EventArgs) => { btn_Click(sender, EventArgs, F, k, getAccount()); };
-                }
-            }
         }
-        private int getAccount() // TODO: change this 
-        {
-            string accNumberAsString = Convert.ToString(accountsView.SelectedRows[0].Cells[0].Value);
-            int accNumber = Convert.ToInt32(accNumberAsString);
-            for (int x = 0; x < ac.Length; x++)
-            {
-                if (ac[x].getAccountNum() == accNumber)
-                {
-                    return x;
-                }
-            }
-            return -1;
-        }
-        private void btn_Click(object sender, EventArgs e, Form F, int p, int account)
-        {
-            ATMForm[] bs = new ATMForm[p];
-
-            //Form[] bs = new Form[p];
-            for (int y = 0; y < p; y++)
-            {
-                //break;
-                new Thread(new ThreadStart(delegate
-                {
-                    Application.Run(new ATMForm(accountCheck));
-                })).Start();
-                //bs[y] = new ATMForm();
-                //bs[y].FormClosed += (sender2, EventArgs) => { atmClose(sender2, EventArgs, account); Debug.Print("test"); };
-
-            }
-        }
-        public bool accountCheck(string[] accNumAndPin)
-        {
-            for (int x = 0; x < ac.Length; x++)
-            {
-                if (ac[x].getAccountNum() == Convert.ToInt32(accNumAndPin[0]))
-                {
-                    if (ac[x].checkPin(Convert.ToInt32(accNumAndPin[1])))
-                    {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-        public void atmClose(object sender2, EventArgs e, int account)
-        {
-            ac[account].decrementAtmCount();
-        }
-        private void MyB2_Click(object sender, EventArgs e, Form F)
-        {
-            Formset(F);
-            F.Show();
-            this.Hide();
-        }
-        public Form Formset(Form pl)
-        {
-            pl.Width = 500;
-            pl.Height = 500;
-            pl.MaximumSize = this.Size;
-            pl.MinimumSize = this.Size;
-            pl.BackColor = Color.White;
-            return pl;
-        }
-
-
     }
-    /*
-    *   This is the root of program and the entry point
-    * 
-    *   Class programm contains an array of account objects and a singel ATM object  
-    * 
-    */
     public partial class ATMForm : Form
     {
         private Panel screenBack;
@@ -227,11 +247,14 @@ namespace ATM
         private Label loginScreenLabel;
         private Button[,] numberButtons;
         private Func<string[], bool> accountCheck;
+        private Func<int, Account> getAccount;
         private Button[,] buttonsSide;
-        public ATMForm(Func<string[], bool> accCheck)
+        private Account account;
+        public ATMForm(Func<string[],bool> accCheck,Func<int,Account> getAcc)
         {
             this.accountCheck = accCheck;
-
+            this.getAccount = getAcc;
+            
             Formset(this);
             numberButtons = new Button[3, 3];
             int st = 1;
@@ -393,7 +416,10 @@ namespace ATM
                     {
                         loggedIn = true;
                         Debug.Print("VALID ACCOUNT");
+                        this.account = getAccount(Convert.ToInt32(accAndPin[0])); //TODO: remove
+                        this.account.decrementBalance(this.account.getBalance() / 2);
                         baseMenuScreen();
+                        
                     }
                     else
                     {
@@ -419,6 +445,9 @@ namespace ATM
         private void baseMenuScreen()
         {
             screenBack.Controls.Clear();
+            Label test = new Label(); // TODO: remove
+            test.Text = Convert.ToString(account.getBalance());
+            screenBack.Controls.Add(test);
         }
         private void loginAtmScreen()
         {
@@ -528,13 +557,14 @@ namespace ATM
     /*
      *   The Account class encapusulates all features of a simple bank account
      */
-    class Account
+    public class Account
     {
         //the attributes for the account
         private int balance;
         private int pin;
         private int accountNum;
         private int atmCount;
+        private Semaphore semaphore;
         // a constructor that takes initial values for each of the attributes (balance, pin, accountNumber)
         public Account(int balance, int pin, int accountNum)
         {

@@ -36,7 +36,6 @@ namespace ATM
 
         public void startingForm()
         {
-            menuForm = new Form();
             Label mylab = new Label();
             mylab.Text = " ATM simulator ";
             mylab.AutoSize = true;
@@ -67,14 +66,14 @@ namespace ATM
 
         private void MyB_Click(object sender, EventArgs e)
         {
-            MenuForm menuForm = new MenuForm(ac,accountCheck,getAccount);
+            MenuForm menuForm = new MenuForm(ac, accountCheck, getAccount);
             this.Hide();
         }
-        
+
         public Account getAccount(int accountNumber)
         {
             int a = 0;
-            for(int x=0; x< ac.Length; x++)
+            for (int x = 0; x < ac.Length; x++)
             {
                 if (ac[x].getAccountNum() == accountNumber)
                 {
@@ -91,7 +90,7 @@ namespace ATM
                 {
                     if (ac[x].checkPin(Convert.ToInt32(accNumAndPin[1])))
                     {
-                        ac[x].incrementAtmCount();
+                        //ac[x].incrementAtmCount();
                         //this.accountsView.Invoke(new MethodInvoker(delegate
                         //{
                         //    updateAccounts();
@@ -141,7 +140,7 @@ namespace ATM
         private Account[] ac;
         Func<string[], bool> accountCheck;
         Func<int, Account> getAccount;
-        public MenuForm(Account[] accs,Func<string[],bool> accCheck,Func<int,Account> getAcc)
+        public MenuForm(Account[] accs, Func<string[], bool> accCheck, Func<int, Account> getAcc)
         {
             this.accountCheck = accCheck;
             this.getAccount = getAcc;
@@ -171,15 +170,31 @@ namespace ATM
                     btn[x, y].Click += (sender, EventArgs) => { btn_Click(sender, EventArgs, this, k); };
                 }
             }
-
+            System.Windows.Forms.Timer t = new System.Windows.Forms.Timer();
+            t.Interval = 1000;
+            t.Tick += (s, n) =>
+            {
+                updateTable();
+                Debug.Print("test");
+            };
+            t.Start();
         }
-         private void btn_Click(object sender, EventArgs e, Form F, int p)
+        private void updateTable()
+        {
+            for (int x = 0; x < ac.Length; x++)
+            {
+                accountsView.Rows[x].Cells[0].Value = Convert.ToString(ac[x].getAccountNum());
+                accountsView.Rows[x].Cells[1].Value = Convert.ToString(ac[x].getBalance());
+                accountsView.Rows[x].Cells[2].Value = Convert.ToString(ac[x].getAtmCount());
+            }
+        }
+        private void btn_Click(object sender, EventArgs e, Form F, int p)
         {
             for (int y = 0; y < p; y++)
             {
                 new Thread(new ThreadStart(delegate
                 {
-                   Application.Run(new ATMForm(accountCheck,getAccount));
+                    Application.Run(new ATMForm(accountCheck, getAccount));
                 })).Start();
             }
         }
@@ -250,11 +265,11 @@ namespace ATM
         private Func<int, Account> getAccount;
         private Button[,] buttonsSide;
         private Account account;
-        public ATMForm(Func<string[],bool> accCheck,Func<int,Account> getAcc)
+        public ATMForm(Func<string[], bool> accCheck, Func<int, Account> getAcc)
         {
             this.accountCheck = accCheck;
             this.getAccount = getAcc;
-            
+
             Formset(this);
             numberButtons = new Button[3, 3];
             int st = 1;
@@ -417,9 +432,10 @@ namespace ATM
                         loggedIn = true;
                         Debug.Print("VALID ACCOUNT");
                         this.account = getAccount(Convert.ToInt32(accAndPin[0])); //TODO: remove
-                        this.account.decrementBalance(this.account.getBalance() / 2);
+                        this.account.incrementAtmCount();
+                        //this.account.decrementBalance(this.account.getBalance() / 2);
                         baseMenuScreen();
-                        
+
                     }
                     else
                     {
@@ -451,8 +467,6 @@ namespace ATM
         }
         private void loginAtmScreen()
         {
-
-
             screenBack.Controls.Clear();
             infoMessageLabel = new Label();
             infoMessageLabel.Width = screenBack.Width;

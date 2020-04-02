@@ -15,9 +15,6 @@ namespace ATM
     public partial class Form1 : Form
     {
         private Account[] ac = new Account[3];
-        private ATM1 atm;
-        private DataGridView accountsView;
-        Form menuForm;
 
         public Form1()
         {
@@ -66,7 +63,7 @@ namespace ATM
 
         private void MyB_Click(object sender, EventArgs e)
         {
-            MenuForm menuForm = new MenuForm(ac, accountCheck, getAccount);
+            MenuForm menuForm = new MenuForm(ac, accountCheck, getAccount); // TODO: add close event 
             this.Hide();
         }
 
@@ -104,17 +101,9 @@ namespace ATM
             }
             return false;
         }
-        private void updateAccounts()
-        {
-            updateDataGridHandler();
-        }
-        private void updateDataGridHandler()
-        {
-            menuForm.Controls.Clear();
-        }
         public void atmClose(object sender2, EventArgs e, int account)
         {
-            ac[account].decrementAtmCount();
+            ac[account].decrementAtmCount(); // TODO: add this to atm window close
         }
         private void MyB2_Click(object sender, EventArgs e, Form F)
         {
@@ -175,7 +164,7 @@ namespace ATM
             t.Tick += (s, n) =>
             {
                 updateTable();
-                Debug.Print("test");
+               // Debug.Print("test");
             };
             t.Start();
         }

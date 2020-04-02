@@ -12,10 +12,11 @@ using System.Windows.Forms;
 
 namespace ATM
 {
+
     public partial class Form1 : Form
     {
         private Account[] ac = new Account[3];
-
+        public bool subtract = false;
         public Form1()
         {
             ac[0] = new Account(300, 1111, 111111);
@@ -164,12 +165,13 @@ namespace ATM
             t.Tick += (s, n) =>
             {
                 updateTable();
-               // Debug.Print("test");
+                // Debug.Print("test");
             };
             t.Start();
         }
         private void updateTable()
         {
+            // TODO: investigate out of bounds error that pops up here
             for (int x = 0; x < ac.Length; x++)
             {
                 accountsView.Rows[x].Cells[0].Value = Convert.ToString(ac[x].getAccountNum());
@@ -254,6 +256,11 @@ namespace ATM
         private Func<int, Account> getAccount;
         private Button[,] buttonsSide;
         private Account account;
+
+
+        private bool mainScreen = false;
+        private bool withdrawing = false;
+        private bool returningCard = false;
         public ATMForm(Func<string[], bool> accCheck, Func<int, Account> getAcc)
         {
             this.accountCheck = accCheck;
@@ -419,6 +426,7 @@ namespace ATM
                     if (this.accountCheck(accAndPin))
                     {
                         loggedIn = true;
+
                         Debug.Print("VALID ACCOUNT");
                         this.account = getAccount(Convert.ToInt32(accAndPin[0])); //TODO: remove
                         this.account.incrementAtmCount();
@@ -449,10 +457,64 @@ namespace ATM
         }
         private void baseMenuScreen()
         {
+            mainScreen = true;
+            //TODO: add number controls for each // TODO: add formatting
             screenBack.Controls.Clear();
-            Label test = new Label(); // TODO: remove
-            test.Text = Convert.ToString(account.getBalance());
-            screenBack.Controls.Add(test);
+            Label withdrawLabel = new Label();
+            withdrawLabel.Text = "To take money from your account ";
+            withdrawLabel.AutoSize = true;
+            withdrawLabel.Location = new Point(0, buttonsSide[0, 0].Location.Y);
+            screenBack.Controls.Add(withdrawLabel);
+
+
+            Label checkBalanceLabel = new Label();
+            checkBalanceLabel.Text = "To check your account balance ";
+            checkBalanceLabel.AutoSize = true;
+            checkBalanceLabel.Location = new Point(0, buttonsSide[0, 1].Location.Y);
+            screenBack.Controls.Add(checkBalanceLabel);
+
+
+            Label returnCardLabel = new Label();
+            returnCardLabel.Text = "To check your account balance ";
+            returnCardLabel.AutoSize = true;
+            returnCardLabel.Location = new Point(0, buttonsSide[0, 2].Location.Y);
+            screenBack.Controls.Add(returnCardLabel);
+        }
+
+        private void withdrawScreen()
+        {
+            screenBack.Controls.Clear();
+            mainScreen = false;
+            withdrawing = true;
+            Label[,] withdrawLabels = new Label[2, 3];
+            int i = 0;
+            string[] labelText = new string[] { "£10", "£100", "£20", "£500", "£40", "Enter Custom Ammount" };
+            for (int n = 0; n < 3; n++) // Loop for each button
+            {
+                for (int x = 0; x < 2; x++) // Loop for y
+                {
+                    withdrawLabels[x, n] = new Label();
+                    withdrawLabels[x, n].AutoSize = true;
+                    withdrawLabels[x, n].Text = labelText[i];
+                    withdrawLabels[x, n].Location = new Point(x == 0 ? 10 : Convert.ToInt32(screenBack.Width / 2), buttonsSide[x, n].Location.Y);
+                    if (x == 1)
+                    {
+                        //withdrawLabels[x, n].TextAlign = ContentAlignment.MiddleLeft;
+                    }
+                    screenBack.Controls.Add(withdrawLabels[x, n]);
+                    i++;
+                }
+            }
+
+
+        }
+        private void balanceScreen()
+        {
+            screenBack.Controls.Clear();
+        }
+        private void returnScreen()
+        {
+            screenBack.Controls.Clear();
         }
         private void loginAtmScreen()
         {
@@ -496,23 +558,61 @@ namespace ATM
                     buttonsSide[x, n] = new Button(); // Create button
                     buttonsSide[x, n].SetBounds((x * 310) + 60, (n * 65) + 20, 50, 50); // Set size & position
                     buttonsSide[x, n].Text = Convert.ToString(x) + " " + Convert.ToString(n); //TODO : REMOVE
+                    int one = x;
+                    int two = n;
+                    buttonsSide[x, n].Click += (sender, EventArgs) => { sideButtonsHandler(sender, EventArgs, one, two); };
                     Controls.Add(buttonsSide[x, n]);
                 }
             }
 
 
         }
+        private void withdraw(int amnt)
+        {
+            //do the checking if they have enough
+            // if so show success message for a time then redirect to something ?
+            //if not show unsuccessful screen , balance , requested amount
+            
+        }
         private void sideButtonsHandler(object sender, EventArgs e, int one, int two)
         {
+            //Debug.Print("Side button pressed");
             if (one == 0) // left side
             {
+                // Debug.Print("Left side");
+                //Debug.Print(Convert.ToString(two));
                 switch (two)
                 {
+
                     case 0: // top left
+                        if (mainScreen)
+                        {
+                            withdrawScreen();
+                        }
+                        else if (withdrawing)
+                        {
+                            withdraw(10);
+                        }
                         break;
                     case 1: // middle left
+                        if (mainScreen)
+                        {
+                            balanceScreen();
+                        }
+                        else if (withdrawing)
+                        {
+                            withdraw(20);
+                        }
                         break;
                     case 2: // bottom left
+                        if (mainScreen)
+                        {
+                            returnScreen();
+                        }
+                        else if (withdrawing)
+                        {
+                            withdraw(40);
+                        }
                         break;
                 }
             }
@@ -521,10 +621,22 @@ namespace ATM
                 switch (two)
                 {
                     case 0: // top right
+                        if (withdrawing)
+                        {
+                            withdraw(100);
+                        }
                         break;
                     case 1: // middle right
+                        if (withdrawing)
+                        {
+                            withdraw(500);
+                        }
                         break;
                     case 2: // bottom right
+                        if (withdrawing)
+                        {
+                            // custom withdraw page
+                        }
                         break;
                 }
 

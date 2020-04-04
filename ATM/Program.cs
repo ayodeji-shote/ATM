@@ -13,16 +13,21 @@ namespace ATM
         /// The main entry point for the application.
         /// </summary>
         [STAThread]
-
+        
         static void Main()
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            new Thread(new ThreadStart(delegate
-            {
-                Application.Run(new Form1());
-            })).Start();
+            mainForm = new Form1();
+            Application.Run(mainForm);
+            //Application.Run(new Form1());
 
+
+        }
+        static Form1 mainForm;
+        public static void sendStatusMessage(string statusMessage)
+        {
+            mainForm.sendStatusMessage(statusMessage);
         }
     }
 }

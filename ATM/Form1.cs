@@ -16,9 +16,14 @@ namespace ATM
     public partial class Form1 : Form
     {
         private Account[] ac = new Account[3];
-        public bool subtract = false;
+        public void sendStatusMessage(string message)
+        {
+            menuForm.sendStatusMessage(message);
+        }
+        private MenuForm menuForm;
         public Form1()
         {
+            // create our accounts
             ac[0] = new Account(300, 1111, 111111);
             ac[1] = new Account(750, 2222, 222222);
             ac[2] = new Account(3000, 3333, 333333);
@@ -64,7 +69,7 @@ namespace ATM
 
         private void MyB_Click(object sender, EventArgs e)
         {
-            MenuForm menuForm = new MenuForm(ac, accountCheck, getAccount); // TODO: add close event 
+            menuForm = new MenuForm(ac, accountCheck, getAccount); // TODO: add close event 
             this.Hide();
         }
 
@@ -126,10 +131,29 @@ namespace ATM
     }
     public partial class MenuForm : Form
     {
+        private delegate void SafeCallDelegate(string text);
         private DataGridView accountsView;
         private Account[] ac;
         Func<string[], bool> accountCheck;
         Func<int, Account> getAccount;
+        private System.Windows.Forms.Timer updateTimer = new System.Windows.Forms.Timer();
+        private DataGridView statusGrid;
+        public void sendStatusMessage(string message)
+        {
+
+            // TODO: add status here
+
+            if (this.statusGrid.InvokeRequired)
+            {
+                var d = new SafeCallDelegate(sendStatusMessage);
+                this.Invoke(d, new object[] { message });
+            }
+            else
+            {
+                this.statusGrid.Rows.Add(message.Split('*'));
+            }
+
+        }
         public MenuForm(Account[] accs, Func<string[], bool> accCheck, Func<int, Account> getAcc)
         {
             this.accountCheck = accCheck;
@@ -138,6 +162,7 @@ namespace ATM
             Formset();
             this.Show();
             accountsView = createAccountsView(this.Width);
+            createStatusGrid();
             Controls.Add(accountsView);
             Label mylab = new Label();
             mylab.Text = " How many ATM's do you want to simulate ";
@@ -160,19 +185,20 @@ namespace ATM
                     btn[x, y].Click += (sender, EventArgs) => { btn_Click(sender, EventArgs, this, k); };
                 }
             }
-            System.Windows.Forms.Timer t = new System.Windows.Forms.Timer();
-            t.Interval = 1000;
-            t.Tick += (s, n) =>
+
+            updateTimer.Interval = 1000;
+            updateTimer.Tick += (s, n) =>
             {
                 updateTable();
                 // Debug.Print("test");
             };
-            t.Start();
+            updateTimer.Start();
+            this.FormClosed += (sender, EventArgs) => { this.updateTimer.Stop(); };
         }
         private void updateTable()
         {
             // TODO: investigate out of bounds error that pops up here
-            for (int x = 0; x < ac.Length; x++)
+            for (int x = 0; x < accountsView.RowCount; x++)
             {
                 accountsView.Rows[x].Cells[0].Value = Convert.ToString(ac[x].getAccountNum());
                 accountsView.Rows[x].Cells[1].Value = Convert.ToString(ac[x].getBalance());
@@ -188,6 +214,38 @@ namespace ATM
                     Application.Run(new ATMForm(accountCheck, getAccount));
                 })).Start();
             }
+        }
+        private void createStatusGrid()
+        {
+            // time
+            // account number
+            // thread no
+            // type
+            // value 
+
+
+
+            this.statusGrid = new DataGridView();
+            statusGrid.Size = new Size(this.Width, 140);
+            statusGrid.Location = new Point(0, this.Height - 150);
+            statusGrid.ColumnCount = 5;
+            statusGrid.Columns[0].Name = "time";
+            statusGrid.Columns[1].Name = "Acc #";
+            statusGrid.Columns[2].Name = "Atm #";
+            statusGrid.Columns[3].Name = "Type";
+            statusGrid.Columns[4].Name = "Value";
+            statusGrid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            statusGrid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;
+            statusGrid.MultiSelect = false;
+            statusGrid.AllowUserToResizeColumns = false;
+            statusGrid.AllowUserToAddRows = false;
+            statusGrid.AllowUserToDeleteRows = false;
+            statusGrid.AllowUserToResizeRows = false;
+            statusGrid.AllowDrop = false;
+            statusGrid.ReadOnly = true;
+            statusGrid.RowHeadersVisible = false;
+            this.Controls.Add(statusGrid);
+
         }
         private DataGridView createAccountsView(int width)
         {
@@ -261,8 +319,12 @@ namespace ATM
         private bool mainScreen = false;
         private bool withdrawing = false;
         private bool returningCard = false;
+        private bool showingBalance = false;
+        private int curThread = -1;
         public ATMForm(Func<string[], bool> accCheck, Func<int, Account> getAcc)
         {
+
+
             this.accountCheck = accCheck;
             this.getAccount = getAcc;
 
@@ -286,13 +348,41 @@ namespace ATM
             Optionmaker();
             sideButtons();
             addAtmScreen();
+            this.FormClosed += (sender, EventArgs) => { atmClose(sender, EventArgs); };
+
+            reset();
+
             Label t = new Label();
             t.Text = Convert.ToString(Thread.CurrentThread.ManagedThreadId);
+            this.curThread = Thread.CurrentThread.ManagedThreadId;
             t.Location = new Point(Width / 2, 0);
             Controls.Add(t); //TODO: remove
         }
+        private void reset()
+        {
+            this.screenBack.Controls.Clear();
+            this.account = null;
+            this.withdrawing = false;
+            this.returningCard = false;
+            this.loggedIn = false;
+            this.mainScreen = false;
+            this.showingBalance = false;
+            loginAtmScreen();
+
+        }
+        private void atmClose(object sender, EventArgs e)
+        {
+            if (this.account != null)
+            {
+                this.account.decrementAtmCount();
+            }
+        }
         private void numberButtonHandler(object sender, EventArgs e, int num)
         {
+            if (returningCard)
+            {
+                return;
+            }
             if (this.accountNumberTextBox.Visible == true)
             {
                 if (this.accountNumberTextBox.Text.Length == 6)
@@ -311,11 +401,6 @@ namespace ATM
 
             }
             //Debug.Print(Convert.ToString(num));
-
-        }
-        private void ATMForm_Load(object sender, EventArgs e)
-        {
-
 
         }
         public Form Formset(Form pl)
@@ -389,11 +474,56 @@ namespace ATM
 
             // enter 
             controlButtons[2].Click += (sender, EventArgs) => { enterButtonHandler(sender, EventArgs); };
+            controlButtons[1].Click += (sender, EventArge) => { clearButtonHandler(sender, EventArge); };
+            controlButtons[0].Click += (sender, EventArgs) => { cancelButtonHandler(sender, EventArgs); };
             Show();
 
         }
+        private void cancelButtonHandler(object sender, EventArgs e)
+        {
+            if (returningCard)
+            {
+                return;
+            }
+            if (!loggedIn)
+            {
+                returnScreen();
+
+            }
+            else
+            {
+
+            }
+        }
+        private void clearButtonHandler(object sender, EventArgs e)
+        {
+            if (returningCard)
+            {
+                return;
+            }
+            if (this.loggedIn == false)
+            {
+                if (this.pinNumberTextBox.Visible == false)
+                {
+                    //we are dealing with an account number input
+                    this.accountNumberTextBox.Text = "";
+                }
+                else
+                {
+                    this.pinNumberTextBox.Text = "";
+                }
+            }
+            else
+            {
+
+            }
+        }
         private void enterButtonHandler(object sender, EventArgs e)
         {
+            if (returningCard)
+            {
+                return;
+            }
             if (this.loggedIn == false) // we are in login 
             {
                 if (this.pinNumberTextBox.Visible == false)
@@ -401,10 +531,19 @@ namespace ATM
                     //we are dealing with an account number input
                     if (this.accountNumberTextBox.Text.Length < 6)
                     {
-                        this.infoMessageLabel.Text = "YOUR ACCOUNT NUMBER MUST BE AT LEAST 6 DIGITS";
+                        this.infoMessageLabel.Text = "YOUR ACCOUNT NUMBER MUST BE AT LEAST 6 \n DIGITS";
+                        this.infoMessageLabel.AutoSize = true;
                         if (this.infoMessageLabel.Visible == false)
                         {
                             this.infoMessageLabel.Show();
+                            System.Windows.Forms.Timer t = new System.Windows.Forms.Timer();
+                            t.Interval = 3000; // 3 seconds
+                            t.Tick += (s, n) =>
+                            {
+                                this.infoMessageLabel.Hide();
+                                t.Stop();
+                            };
+                            t.Start();
 
                         }
                         //TODO: hide after certain time ?
@@ -475,7 +614,7 @@ namespace ATM
 
 
             Label returnCardLabel = new Label();
-            returnCardLabel.Text = "To check your account balance ";
+            returnCardLabel.Text = "To return your card";
             returnCardLabel.AutoSize = true;
             returnCardLabel.Location = new Point(0, buttonsSide[0, 2].Location.Y);
             screenBack.Controls.Add(returnCardLabel);
@@ -514,7 +653,32 @@ namespace ATM
         }
         private void returnScreen()
         {
+            returningCard = true;
+            if (this.account != null)
+            {
+                this.account.decrementAtmCount();
+            }
             screenBack.Controls.Clear();
+            this.infoMessageLabel.Text = "Returning Card \n Please Wait...";
+            screenBack.Controls.Add(this.infoMessageLabel);
+            this.infoMessageLabel.Show();
+            System.Windows.Forms.Timer t = new System.Windows.Forms.Timer();
+            this.infoMessageLabel.Height = screenBack.Height / 5;
+            this.infoMessageLabel.Location = new Point(0, screenBack.Height / 2);
+            t.Interval = 3000;
+            t.Tick += (s, n) =>
+            {
+                t.Stop();
+                reset();
+            };
+            t.Start();
+
+
+
+
+
+
+
         }
         private void loginAtmScreen()
         {
@@ -567,15 +731,33 @@ namespace ATM
 
 
         }
+        private void customWithdrawScreen()
+        {
+
+        }
         private void withdraw(int amnt)
         {
+            screenBack.Controls.Clear();
+
+            Label test = new Label();
+            screenBack.Controls.Add(test);
+            test.Text = Convert.ToString(
+            account.withdrawAmnt(amnt, this.curThread));
+            Label test2 = new Label();
+            test2.Text = Convert.ToString(account.getBalance());
+            test2.Location = new Point(0, screenBack.Height / 2);
+            screenBack.Controls.Add(test2);
             //do the checking if they have enough
             // if so show success message for a time then redirect to something ?
             //if not show unsuccessful screen , balance , requested amount
-            
+
         }
         private void sideButtonsHandler(object sender, EventArgs e, int one, int two)
         {
+            if (returningCard)
+            {
+                return;
+            }
             //Debug.Print("Side button pressed");
             if (one == 0) // left side
             {
@@ -680,6 +862,7 @@ namespace ATM
         private int accountNum;
         private int atmCount;
         private Semaphore semaphore;
+        object withdrawLock = new object(); // if this is static it will only allow one atm to withdraw at a time , if not it will only lock for each account
         // a constructor that takes initial values for each of the attributes (balance, pin, accountNumber)
         public Account(int balance, int pin, int accountNum)
         {
@@ -724,6 +907,31 @@ namespace ATM
          *   true if the transactions if possible
          *   false if there are insufficent funds in the account
          */
+        //https://www.pluralsight.com/guides/lock-statement-access-data
+        public Boolean withdrawAmnt(int amnt, int threadID)
+        {
+            //Program.sendStatusMessage(Convert.ToString(this.accountNum)+ "*" + Convert.ToString();
+            Program.sendStatusMessage(DateTime.Now.ToString("h:mm:ss") +
+                "*" + Convert.ToString(this.accountNum) +
+                "*" + Convert.ToString(threadID) +
+                "*" + Convert.ToString("Access") +
+                "*" + "£" +Convert.ToString(amnt)
+                ); 
+            lock (withdrawLock)
+            {
+                Program.sendStatusMessage(DateTime.Now.ToString("h:mm:ss") +
+                "*" + Convert.ToString(this.accountNum) +
+                "*" + Convert.ToString(threadID) +
+                "*" + Convert.ToString("Withdraw") +
+                "*" + "£" + Convert.ToString(amnt)
+                );
+                Thread.Sleep(5000);
+
+                return decrementBalance(amnt);
+
+            }
+
+        }
         public Boolean decrementBalance(int amount)
         {
             if (this.balance > amount)

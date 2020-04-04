@@ -238,7 +238,6 @@ namespace ATM
             for (int x = 0; x < atms.Count; x++)
             {
                 Thread cur = (Thread)atms[x];
-                Debug.Print(Convert.ToString(cur.ManagedThreadId) + " " + Convert.ToString(id));
                 if (cur.ManagedThreadId != id)
                 {
                     temp.Add(cur);
@@ -436,18 +435,9 @@ namespace ATM
                 }
                 this.pinNumberTextBox.Text += "*";
                 this.pinNumberAsString += Convert.ToString(num);
-                //TODO : CHANGE THIS ?
-                //this.pinNumberTextBox.Text += Convert.ToString(num);
-
             }
-            //Debug.Print(Convert.ToString(num));
-
         }
 
-        public void atmClose(object sender2, EventArgs e, int account)
-        {
-            //ac[account].decrementAtmCount();
-        }
         public void ATMMaker()
         {
             //TODO: ADD HANDLERS
@@ -745,13 +735,6 @@ namespace ATM
                 reset();
             };
             t.Start();
-
-
-
-
-
-
-
         }
         private void loginAtmScreen()
         {
@@ -805,10 +788,7 @@ namespace ATM
 
 
         }
-        private void customWithdrawScreen()
-        {
 
-        }
         private void withdraw(int amnt)
         {
             withdrawing = false;
@@ -890,11 +870,8 @@ namespace ATM
             {
                 return;
             }
-            //Debug.Print("Side button pressed");
             if (one == 0) // left side
             {
-                // Debug.Print("Left side");
-                //Debug.Print(Convert.ToString(two));
                 switch (two)
                 {
 
@@ -1054,7 +1031,7 @@ namespace ATM
         public Boolean withdrawAmnt(int amnt, int threadID, bool threadLock)
         {
             //Program.sendStatusMessage(Convert.ToString(this.accountNum)+ "*" + Convert.ToString();
-            Program.sendStatusMessage(DateTime.Now.ToString("h:mm:ss") +
+            Program.sendStatusMessage(DateTime.Now.ToString("HH:mm:ss") +
                 "*" + Convert.ToString(this.accountNum) +
                 "*" + Convert.ToString(threadID) +
                 "*" + Convert.ToString("Access") +
@@ -1064,7 +1041,7 @@ namespace ATM
             {
                 lock (withdrawLock)
                 {
-                    Program.sendStatusMessage(DateTime.Now.ToString("h:mm:ss") +
+                    Program.sendStatusMessage(DateTime.Now.ToString("HH:mm:ss") +
                     "*" + Convert.ToString(this.accountNum) +
                     "*" + Convert.ToString(threadID) +
                     "*" + Convert.ToString("Withdraw") +
@@ -1078,7 +1055,7 @@ namespace ATM
             }
             else
             {
-                Program.sendStatusMessage(DateTime.Now.ToString("h:mm:ss") +
+                Program.sendStatusMessage(DateTime.Now.ToString("HH:mm:ss") +
                     "*" + Convert.ToString(this.accountNum) +
                     "*" + Convert.ToString(threadID) +
                     "*" + Convert.ToString("Withdraw") +

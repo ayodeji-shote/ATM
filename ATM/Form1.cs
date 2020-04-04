@@ -26,7 +26,7 @@ namespace ATM
             // create our accounts
             ac[0] = new Account(300, 1111, 111111);
             ac[1] = new Account(750, 2222, 222222);
-            ac[2] = new Account(3000, 3333, 333333); //TODO: add reset accounts button ?
+            ac[2] = new Account(3000, 3333, 333333);
             InitializeComponent();
             startingForm();
             Program.setIcon(this);
@@ -72,11 +72,17 @@ namespace ATM
 
         private void MyB_Click(object sender, EventArgs e)
         {
+            ac[0] = new Account(300, 1111, 111111);
+            ac[1] = new Account(750, 2222, 222222);
+            ac[2] = new Account(3000, 3333, 333333);
             menuForm = new MenuForm(ac, accountCheck, getAccount, false);
             this.Hide();
         }
         private void MyB2_Click(object sender, EventArgs e)
         {
+            ac[0] = new Account(300, 1111, 111111);
+            ac[1] = new Account(750, 2222, 222222);
+            ac[2] = new Account(3000, 3333, 333333);
             menuForm = new MenuForm(ac, accountCheck, getAccount, true);
             this.Hide();
         }
@@ -157,7 +163,7 @@ namespace ATM
         public MenuForm(Account[] accs, Func<string[], bool> accCheck, Func<int, Account> getAcc, bool threadLock)
         {
             this.tlock = threadLock;
-            this.Text = this.tlock == true ? "Thread Safe " : "Thread Unsafe";
+            this.Text = this.tlock == true ? "Thread Lock Enabled " : "Thread Lock Disabled";
             this.FormClosed += (sender, EventArgs) => { Program.showMainForm(); };
             this.accountCheck = accCheck;
             this.getAccount = getAcc;
@@ -346,7 +352,7 @@ namespace ATM
             reset();
 
             Label t = new Label();
-            this.Text = "ATM # : " + Convert.ToString(Thread.CurrentThread.ManagedThreadId) + ((this.tlock == true) ? " | Thread Safe" : " | Thread Unsafe");
+            this.Text = "ATM # : " + Convert.ToString(Thread.CurrentThread.ManagedThreadId) + ((this.tlock == true) ? " | Thread Lock Enabled " : " | Thread Lock Disabled");
             t.AutoSize = true;
             this.curThread = Thread.CurrentThread.ManagedThreadId;
             t.Location = new Point(0, 0);
@@ -474,15 +480,6 @@ namespace ATM
         {
             if (returningCard || lockControls)
             {
-                if (lockControls && showingWithdraw)
-                {
-                    //return to menu
-
-                    lockControls = false;
-                    showingWithdraw = false;
-                    withdrawing = false;
-                    baseMenuScreen();
-                }
                 return;
             }
             if (!loggedIn)
@@ -617,21 +614,21 @@ namespace ATM
             //TODO: add number controls for each // TODO: add formatting
             screenBack.Controls.Clear();
             Label withdrawLabel = new Label();
-            withdrawLabel.Text = "To take money from your account ";
+            withdrawLabel.Text = "< To take money from your account ";
             withdrawLabel.AutoSize = true;
             withdrawLabel.Location = new Point(0, buttonsSide[0, 0].Location.Y);
             screenBack.Controls.Add(withdrawLabel);
 
 
             Label checkBalanceLabel = new Label();
-            checkBalanceLabel.Text = "To check your account balance ";
+            checkBalanceLabel.Text = "< To check your account balance ";
             checkBalanceLabel.AutoSize = true;
             checkBalanceLabel.Location = new Point(0, buttonsSide[0, 1].Location.Y);
             screenBack.Controls.Add(checkBalanceLabel);
 
 
             Label returnCardLabel = new Label();
-            returnCardLabel.Text = "To return your card";
+            returnCardLabel.Text = "< To return your card";
             returnCardLabel.AutoSize = true;
             returnCardLabel.Location = new Point(0, buttonsSide[0, 2].Location.Y);
             screenBack.Controls.Add(returnCardLabel);
@@ -644,18 +641,18 @@ namespace ATM
             withdrawing = true;
             Label[,] withdrawLabels = new Label[2, 3];
             int i = 0;
-            string[] labelText = new string[] { "£10", "£100", "£20", "£500", "£40", "Enter Custom Ammount" };
+            string[] labelText = new string[] { "< £10", "£100 >", "< £20", "£500 >", "< £40", "Return >" };
             for (int n = 0; n < 3; n++) // Loop for each button
             {
                 for (int x = 0; x < 2; x++) // Loop for y
                 {
                     withdrawLabels[x, n] = new Label();
-                    withdrawLabels[x, n].AutoSize = true;
+                    withdrawLabels[x, n].Width = screenBack.Width / 2;
                     withdrawLabels[x, n].Text = labelText[i];
                     withdrawLabels[x, n].Location = new Point(x == 0 ? 10 : Convert.ToInt32(screenBack.Width / 2), buttonsSide[x, n].Location.Y);
                     if (x == 1)
                     {
-                        //withdrawLabels[x, n].TextAlign = ContentAlignment.MiddleLeft;
+                        withdrawLabels[x, n].TextAlign = ContentAlignment.MiddleRight;
                     }
                     screenBack.Controls.Add(withdrawLabels[x, n]);
                     i++;
@@ -667,10 +664,34 @@ namespace ATM
         private void balanceScreen()
         {
             screenBack.Controls.Clear();
+            mainScreen = false;
+            showingBalance = true;
+            Label accountLabel = new Label();
+            accountLabel.Text = "Account : " + Convert.ToString(account.getAccountNum());
+            accountLabel.TextAlign = ContentAlignment.MiddleCenter;
+            accountLabel.Width = screenBack.Width;
+            accountLabel.Location = new Point(0, (screenBack.Height / 2) - accountLabel.Height);
+            screenBack.Controls.Add(accountLabel);
+            Label balanceLabel = new Label();
+            balanceLabel.Text = "Balance : £" + Convert.ToString(account.getBalance());
+            balanceLabel.TextAlign = ContentAlignment.MiddleCenter;
+            balanceLabel.Width = screenBack.Width;
+            balanceLabel.Location = new Point(0, accountLabel.Location.Y + (accountLabel.Height));
+            screenBack.Controls.Add(balanceLabel);
+
+            Label exitLabel = new Label();
+            exitLabel.Text = "Return >";
+            exitLabel.TextAlign = ContentAlignment.MiddleRight;
+            exitLabel.Width = screenBack.Width;
+            exitLabel.Location = new Point(0, buttonsSide[1, 2].Location.Y);
+            screenBack.Controls.Add(exitLabel);
+
         }
         private void returnScreen()
         {
+            mainScreen = false;
             returningCard = true;
+            loggedIn = false;
             if (this.account != null)
             {
                 this.account.decrementAtmCount();
@@ -755,6 +776,7 @@ namespace ATM
         }
         private void withdraw(int amnt)
         {
+            withdrawing = false;
             screenBack.Controls.Clear();
             lockControls = true; // lock controls while doing stuff
             Label attempting = new Label();
@@ -786,12 +808,13 @@ namespace ATM
                      screenBack.Controls.Add(newBalance);
 
                      Label exitLabel = new Label();
-                     exitLabel.Text = "Press Cancel to Exit";
-                     exitLabel.TextAlign = ContentAlignment.MiddleCenter;
+                     exitLabel.Text = "Return >";
+                     exitLabel.TextAlign = ContentAlignment.MiddleRight;
                      exitLabel.Width = screenBack.Width;
-                     exitLabel.Location = new Point(0, newBalance.Location.Y + newBalance.Height);
+                     exitLabel.Location = new Point(0, buttonsSide[1, 2].Location.Y);
                      screenBack.Controls.Add(exitLabel);
                      showingWithdraw = true;
+                     lockControls = false;
 
                  }
                  else
@@ -812,16 +835,17 @@ namespace ATM
                      screenBack.Controls.Add(newBalance);
 
                      Label exitLabel = new Label();
-                     exitLabel.Text = "Press Cancel to Exit";
-                     exitLabel.TextAlign = ContentAlignment.MiddleCenter;
+                     exitLabel.Text = "Return >";
+                     exitLabel.TextAlign = ContentAlignment.MiddleRight;
                      exitLabel.Width = screenBack.Width;
-                     exitLabel.Location = new Point(0, newBalance.Location.Y + newBalance.Height);
+                     exitLabel.Location = new Point(0, buttonsSide[1, 2].Location.Y);
                      screenBack.Controls.Add(exitLabel);
                      showingWithdraw = true;
+                     lockControls = false;
                  }
                  t.Stop();
              };
-             t.Start();
+            t.Start();
 
 
         }
@@ -890,7 +914,18 @@ namespace ATM
                     case 2: // bottom right
                         if (withdrawing)
                         {
-                            // custom withdraw page
+                            withdrawing = false;
+                            baseMenuScreen();
+                        }
+                        else if (showingBalance)
+                        {
+                            showingBalance = false;
+                            baseMenuScreen();
+                        }
+                        else if (showingWithdraw)
+                        {
+                            showingWithdraw = false;
+                            baseMenuScreen();
                         }
                         break;
                 }

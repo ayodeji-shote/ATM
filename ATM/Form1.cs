@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -107,11 +108,6 @@ namespace ATM
                 {
                     if (ac[x].checkPin(Convert.ToInt32(accNumAndPin[1])))
                     {
-                        //ac[x].incrementAtmCount();
-                        //this.accountsView.Invoke(new MethodInvoker(delegate
-                        //{
-                        //    updateAccounts();
-                        //}));
 
                         return true;
                     }
@@ -144,6 +140,8 @@ namespace ATM
         private bool tlock;
         private System.Windows.Forms.Timer updateTimer = new System.Windows.Forms.Timer();
         private DataGridView statusGrid;
+        private ArrayList atms = new ArrayList();
+        private Label atmCountLabel;
         public void sendStatusMessage(string message)
         {
 
@@ -162,6 +160,7 @@ namespace ATM
         }
         public MenuForm(Account[] accs, Func<string[], bool> accCheck, Func<int, Account> getAcc, bool threadLock)
         {
+
             this.tlock = threadLock;
             this.Text = this.tlock == true ? "Thread Lock Enabled " : "Thread Lock Disabled";
             this.FormClosed += (sender, EventArgs) => { Program.showMainForm(); };
@@ -180,6 +179,14 @@ namespace ATM
             mylab.ForeColor = Color.Black;
             mylab.Location = new Point(0, 90);
             Controls.Add(mylab);
+            atmCountLabel = new Label();
+            atmCountLabel.Text = "Atm Count : 0";
+            atmCountLabel.Width = this.Width;
+            atmCountLabel.Font = new Font("Calibri", 10);
+            atmCountLabel.ForeColor = Color.Black;
+            atmCountLabel.Location = new Point(0, mylab.Location.Y + mylab.Height);
+            atmCountLabel.TextAlign = ContentAlignment.MiddleCenter;
+            Controls.Add(atmCountLabel);
             Button[,] btn = new Button[3, 3];
             int st = 1;
             for (int y = 0; y < 3; y++) // Loop for each button
@@ -199,10 +206,10 @@ namespace ATM
             updateTimer.Tick += (s, n) =>
             {
                 updateTable();
-                // Debug.Print("test");
+                atmCountLabel.Text = "Atm Count : " + Convert.ToString(atms.Count);
             };
             updateTimer.Start();
-            this.FormClosed += (sender, EventArgs) => { this.updateTimer.Stop(); };
+            this.FormClosed += (sender, EventArgs) => { this.updateTimer.Stop(); this.removeAllThreads(); };
         }
         private void updateTable()
         {
@@ -215,12 +222,39 @@ namespace ATM
         }
         private void btn_Click(object sender, EventArgs e, Form F, int p)
         {
+
             for (int y = 0; y < p; y++)
             {
-                new Thread(new ThreadStart(delegate
+                Thread thread;
+                thread = new Thread(() => { Application.Run(new ATMForm(accountCheck, getAccount, removeThread, this.tlock)); });
+                thread.Start();
+                atms.Add(thread);
+            }
+
+        }
+        private bool removeThread(int id)
+        {
+            ArrayList temp = new ArrayList();
+            for (int x = 0; x < atms.Count; x++)
+            {
+                Thread cur = (Thread)atms[x];
+                Debug.Print(Convert.ToString(cur.ManagedThreadId) + " " + Convert.ToString(id));
+                if (cur.ManagedThreadId != id)
                 {
-                    Application.Run(new ATMForm(accountCheck, getAccount, this.tlock));
-                })).Start();
+                    temp.Add(cur);
+                    //return true;
+                }
+
+            }
+            atms = temp;
+            return true;
+        }
+        private void removeAllThreads()
+        {
+            for (int x = 0; x < atms.Count; x++)
+            {
+                Thread cur = (Thread)atms[x];
+                cur.Abort();
             }
         }
         private void createStatusGrid()
@@ -235,7 +269,7 @@ namespace ATM
             statusGrid.Size = new Size(this.Width, 140);
             statusGrid.Location = new Point(0, this.Height - 150);
             statusGrid.ColumnCount = 5;
-            statusGrid.Columns[0].Name = "time";
+            statusGrid.Columns[0].Name = "Time";
             statusGrid.Columns[1].Name = "Acc #";
             statusGrid.Columns[2].Name = "Atm #";
             statusGrid.Columns[3].Name = "Type";
@@ -321,7 +355,7 @@ namespace ATM
         private bool lockControls = false;
         private bool showingWithdraw = false;
         private int curThread = -1;
-        public ATMForm(Func<string[], bool> accCheck, Func<int, Account> getAcc, bool threadLock)
+        public ATMForm(Func<string[], bool> accCheck, Func<int, Account> getAcc, Func<int, bool> removeThread, bool threadLock)
         {
             this.tlock = threadLock;
             this.accountCheck = accCheck;
@@ -347,7 +381,7 @@ namespace ATM
             Optionmaker();
             sideButtons();
             addAtmScreen();
-            this.FormClosed += (sender, EventArgs) => { atmClose(sender, EventArgs); };
+            this.FormClosed += (sender, EventArgs) => { atmClose(sender, EventArgs); removeThread(curThread); };
 
             reset();
 
@@ -508,6 +542,7 @@ namespace ATM
                 else
                 {
                     this.pinNumberTextBox.Text = "";
+                    this.pinNumberAsString = "";
                 }
             }
             else

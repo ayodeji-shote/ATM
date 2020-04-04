@@ -52,14 +52,14 @@ namespace ATM
             this.Controls.Add(mylab);
             Button MyB = new Button();
             Button MyB2 = new Button();
-            MyB.Text = " Base program ";
+            MyB.Text = " Data Race ";
             MyB.AutoSize = true;
             MyB.BackColor = Color.LightBlue;
             MyB.Padding = new Padding(6);
             MyB.Font = new Font("Calibri", 18);
             MyB.Location = new Point(150, 180);
             this.Controls.Add(MyB);
-            MyB2.Text = " Changed program ";
+            MyB2.Text = " Data Race Fixed";
             MyB2.AutoSize = true;
             MyB2.BackColor = Color.LightBlue;
             MyB2.Padding = new Padding(6);
@@ -90,32 +90,35 @@ namespace ATM
 
         public Account getAccount(int accountNumber)
         {
-            int a = 0;
             for (int x = 0; x < ac.Length; x++)
             {
                 if (ac[x].getAccountNum() == accountNumber)
                 {
-                    a = x;
+                    return ac[x];
                 }
             }
-            return ac[a];
+            return null;
         }
-        public bool accountCheck(string[] accNumAndPin)
+        public int accountCheck(string[] accNumAndPin)
         {
             for (int x = 0; x < ac.Length; x++)
             {
                 if (ac[x].getAccountNum() == Convert.ToInt32(accNumAndPin[0]))
                 {
+                    if (ac[x].getErrorCount() >= 3)
+                    {
+                        return -1;
+                    }
                     if (ac[x].checkPin(Convert.ToInt32(accNumAndPin[1])))
                     {
 
-                        return true;
+                        return 1;
                     }
-                    return false;
+                    return 0;
 
                 }
             }
-            return false;
+            return 0;
         }
         public void atmClose(object sender2, EventArgs e, int account)
         {
@@ -135,7 +138,7 @@ namespace ATM
         private delegate void SafeCallDelegate(string text);
         private DataGridView accountsView;
         private Account[] ac;
-        Func<string[], bool> accountCheck;
+        Func<string[], int> accountCheck;
         Func<int, Account> getAccount;
         private bool tlock;
         private System.Windows.Forms.Timer updateTimer = new System.Windows.Forms.Timer();
@@ -158,17 +161,25 @@ namespace ATM
             }
 
         }
-        public MenuForm(Account[] accs, Func<string[], bool> accCheck, Func<int, Account> getAcc, bool threadLock)
+        public MenuForm(Account[] accs, Func<string[], int> accCheck, Func<int, Account> getAcc, bool threadLock)
         {
 
+
             this.tlock = threadLock;
-            this.Text = this.tlock == true ? "Thread Lock Enabled " : "Thread Lock Disabled";
+            this.Text = this.tlock == true ? "Main Bank Computer | Thread Lock Enabled " : "Main Bank Computer | Thread Lock Disabled";
             this.FormClosed += (sender, EventArgs) => { Program.showMainForm(); };
             this.accountCheck = accCheck;
             this.getAccount = getAcc;
             ac = accs;
             Program.formset(this);
             this.Show();
+            //TODO: add button to unlock account
+            Button unblockAcccountButton = new Button();
+            unblockAcccountButton.Text = "Click to unblock selected account";
+            unblockAcccountButton.Width = this.Width;
+            unblockAcccountButton.Location = new Point(0, 90);
+            unblockAcccountButton.Click += (s, n) => { unblockAccount(); };
+            this.Controls.Add(unblockAcccountButton);
             accountsView = createAccountsView(this.Width);
             createStatusGrid();
             Controls.Add(accountsView);
@@ -177,7 +188,7 @@ namespace ATM
             mylab.AutoSize = true;
             mylab.Font = new Font("Calibri", 20);
             mylab.ForeColor = Color.Black;
-            mylab.Location = new Point(0, 90);
+            mylab.Location = new Point(0, 140);
             Controls.Add(mylab);
             atmCountLabel = new Label();
             atmCountLabel.Text = "Atm Count : 0";
@@ -211,6 +222,21 @@ namespace ATM
             updateTimer.Start();
             this.FormClosed += (sender, EventArgs) => { this.updateTimer.Stop(); this.removeAllThreads(); };
         }
+        private void unblockAccount()
+        {
+            if (this.accountsView.SelectedRows.Count == 0)
+            {
+                return;
+            }
+
+            Account acc = getAccount(Convert.ToInt32(this.accountsView.SelectedRows[0].Cells[0].Value));
+            if (acc.getErrorCount() >= 3)
+            {
+                acc.setErrorCount(0);
+            }
+
+
+        }
         private void updateTable()
         {
             for (int x = 0; x < accountsView.RowCount; x++)
@@ -218,6 +244,19 @@ namespace ATM
                 accountsView.Rows[x].Cells[0].Value = Convert.ToString(ac[x].getAccountNum());
                 accountsView.Rows[x].Cells[1].Value = Convert.ToString(ac[x].getBalance());
                 accountsView.Rows[x].Cells[2].Value = Convert.ToString(ac[x].getAtmCount());
+                accountsView.Rows[x].Cells[3].Value = Convert.ToString(ac[x].getErrorCount());
+                if (ac[x].getErrorCount() >= 3)
+                {
+                    accountsView.Rows[x].Cells[3].Style.BackColor = Color.Red;
+                }
+                else if (ac[x].getErrorCount() >= 2)
+                {
+                    accountsView.Rows[x].Cells[3].Style.BackColor = Color.Orange;
+                }
+                else if (ac[x].getErrorCount() >= 0)
+                {
+                    accountsView.Rows[x].Cells[3].Style.BackColor = Color.Green;
+                }
             }
         }
         private void btn_Click(object sender, EventArgs e, Form F, int p)
@@ -298,10 +337,11 @@ namespace ATM
              */
             DataGridView accountsDataGridView = new DataGridView();
             accountsDataGridView.Size = new Size(width, 90);
-            accountsDataGridView.ColumnCount = 3;
+            accountsDataGridView.ColumnCount = 4;
             accountsDataGridView.Columns[0].Name = "Account Number";
             accountsDataGridView.Columns[1].Name = "Balance";
             accountsDataGridView.Columns[2].Name = "Atm Count";
+            accountsDataGridView.Columns[3].Name = "Errors";
             accountsDataGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             accountsDataGridView.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCellsExceptHeaders;
             accountsDataGridView.MultiSelect = false;
@@ -324,6 +364,7 @@ namespace ATM
                 curRow[0] = Convert.ToString(ac[x].getAccountNum());
                 curRow[1] = Convert.ToString(ac[x].getBalance());
                 curRow[2] = Convert.ToString(ac[x].getAtmCount());
+                curRow[3] = Convert.ToString(ac[x].getErrorCount());
                 accountsDataGridView.Rows.Add(curRow);
                 //Debug.Print(Convert.ToString(ac[x].getAccountNum()) + " " + Convert.ToString(ac[x].getAtmCount()));
             }
@@ -341,7 +382,7 @@ namespace ATM
         private Label infoMessageLabel;
         private Label loginScreenLabel;
         private Button[,] numberButtons;
-        private Func<string[], bool> accountCheck;
+        private Func<string[], int> accountCheck;
         private Func<int, Account> getAccount;
         private Button[,] buttonsSide;
         private Account account;
@@ -354,7 +395,7 @@ namespace ATM
         private bool lockControls = false;
         private bool showingWithdraw = false;
         private int curThread = -1;
-        public ATMForm(Func<string[], bool> accCheck, Func<int, Account> getAcc, Func<int, bool> removeThread, bool threadLock)
+        public ATMForm(Func<string[], int> accCheck, Func<int, Account> getAcc, Func<int, bool> removeThread, bool threadLock)
         {
             this.tlock = threadLock;
             this.accountCheck = accCheck;
@@ -583,7 +624,8 @@ namespace ATM
                     string[] accAndPin = new string[2];
                     accAndPin[0] = this.accountNumberTextBox.Text;
                     accAndPin[1] = this.pinNumberAsString;
-                    if (this.accountCheck(accAndPin))
+                    int check = this.accountCheck(accAndPin);
+                    if (check == 1)
                     {
                         loggedIn = true;
                         this.account = getAccount(Convert.ToInt32(accAndPin[0]));
@@ -591,12 +633,46 @@ namespace ATM
                         baseMenuScreen();
 
                     }
-                    else
+                    else if (check == 0)
                     {
+                        Account account = getAccount(Convert.ToInt32(accAndPin[0]));
+                        if (account != null)
+                        {
+                            account.incrementErrorCount();
+                        }
                         this.infoMessageLabel.Text = "INVALID PIN OR ACCOUNT NUMBER \n COMBINATION";
                         this.infoMessageLabel.Height = screenBack.Height / 5;
                         this.infoMessageLabel.Width = screenBack.Width;
-                        //this.infoMessageLabel.AutoSize = true;
+                        this.infoMessageLabel.TextAlign = ContentAlignment.MiddleCenter;
+                        this.infoMessageLabel.Location = new Point(0, screenBack.Height / 2);
+                        if (this.infoMessageLabel.Visible == false)
+                        {
+                            this.pinNumberTextBox.Hide();
+                            this.loginScreenLabel.Hide();
+                            this.infoMessageLabel.Show();
+                            System.Windows.Forms.Timer t = new System.Windows.Forms.Timer();
+                            t.Interval = 3000; // 3 seconds
+                            t.Tick += (s, n) =>
+                            {
+                                this.infoMessageLabel.Hide();
+                                loginAtmScreen();
+                                t.Stop();
+                            };
+                            t.Start();
+
+                        }
+
+                    }
+                    else if (check == -1)
+                    {
+                        Account account = getAccount(Convert.ToInt32(accAndPin[0]));
+                        if (account != null)
+                        {
+                            account.incrementErrorCount();
+                        }
+                        this.infoMessageLabel.Text = "YOU HAVE BEEN LOCKED OUT OF YOUR ACCOUNT PLEASE CONTACT YOUR BANK TO UNBLOCK";
+                        this.infoMessageLabel.Height = screenBack.Height / 3;
+                        this.infoMessageLabel.Width = screenBack.Width;
                         this.infoMessageLabel.TextAlign = ContentAlignment.MiddleCenter;
                         this.infoMessageLabel.Location = new Point(0, screenBack.Height / 2);
                         if (this.infoMessageLabel.Visible == false)
@@ -631,7 +707,6 @@ namespace ATM
             screenBack.SetBounds(110, 20, 260, 180);
             Controls.Add(screenBack);
             loginAtmScreen();
-
         }
         private void baseMenuScreen()
         {
@@ -981,7 +1056,7 @@ namespace ATM
         private int pin;
         private int accountNum;
         private int atmCount;
-        private Semaphore semaphore;
+        private int errorCount;
         object withdrawLock = new object(); // if this is static it will only allow one atm to withdraw at a time , if not it will only lock for each account
         // a constructor that takes initial values for each of the attributes (balance, pin, accountNumber)
         public Account(int balance, int pin, int accountNum)
@@ -990,6 +1065,18 @@ namespace ATM
             this.pin = pin;
             this.accountNum = accountNum;
             this.atmCount = 0;
+        }
+        public void incrementErrorCount()
+        {
+            this.errorCount++;
+        }
+        public int getErrorCount()
+        {
+            return this.errorCount;
+        }
+        public void setErrorCount(int err)
+        {
+            this.errorCount = err;
         }
         public int getAtmCount()
         {

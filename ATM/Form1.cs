@@ -26,19 +26,22 @@ namespace ATM
             // create our accounts
             ac[0] = new Account(300, 1111, 111111);
             ac[1] = new Account(750, 2222, 222222);
-            ac[2] = new Account(3000, 3333, 333333);
+            ac[2] = new Account(3000, 3333, 333333); //TODO: add reset accounts button ?
             InitializeComponent();
             startingForm();
+            Program.setIcon(this);
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            Formset(this);
+            //Formset(this);
+            Program.formset(this);
         }
 
 
         public void startingForm()
         {
+            this.Text = "The Bank to end all Banks yo";
             Label mylab = new Label();
             mylab.Text = " ATM simulator ";
             mylab.AutoSize = true;
@@ -63,13 +66,18 @@ namespace ATM
             MyB2.Location = new Point(130, 280);
             this.Controls.Add(MyB2);
             MyB.Click += (sender, EventArgs) => { MyB_Click(sender, EventArgs); }; // this sets the button click to the event handler.
-            MyB2.Click += (sender, EventArgs) => { MyB_Click(sender, EventArgs); }; // this sets the button click to the event handler.
+            MyB2.Click += (sender, EventArgs) => { MyB2_Click(sender, EventArgs); }; // this sets the button click to the event handler.
 
         }
 
         private void MyB_Click(object sender, EventArgs e)
         {
-            menuForm = new MenuForm(ac, accountCheck, getAccount); // TODO: add close event 
+            menuForm = new MenuForm(ac, accountCheck, getAccount, false);
+            this.Hide();
+        }
+        private void MyB2_Click(object sender, EventArgs e)
+        {
+            menuForm = new MenuForm(ac, accountCheck, getAccount, true);
             this.Hide();
         }
 
@@ -113,18 +121,9 @@ namespace ATM
         }
         private void MyB2_Click(object sender, EventArgs e, Form F)
         {
-            Formset(F);
+            Program.formset(F);
             F.Show();
             this.Hide();
-        }
-        public Form Formset(Form pl)
-        {
-            pl.Width = 500;
-            pl.Height = 500;
-            pl.MaximumSize = this.Size;
-            pl.MinimumSize = this.Size;
-            pl.BackColor = Color.White;
-            return pl;
         }
 
 
@@ -136,6 +135,7 @@ namespace ATM
         private Account[] ac;
         Func<string[], bool> accountCheck;
         Func<int, Account> getAccount;
+        private bool tlock;
         private System.Windows.Forms.Timer updateTimer = new System.Windows.Forms.Timer();
         private DataGridView statusGrid;
         public void sendStatusMessage(string message)
@@ -154,12 +154,15 @@ namespace ATM
             }
 
         }
-        public MenuForm(Account[] accs, Func<string[], bool> accCheck, Func<int, Account> getAcc)
+        public MenuForm(Account[] accs, Func<string[], bool> accCheck, Func<int, Account> getAcc, bool threadLock)
         {
+            this.tlock = threadLock;
+            this.Text = this.tlock == true ? "Thread Safe " : "Thread Unsafe";
+            this.FormClosed += (sender, EventArgs) => { Program.showMainForm(); };
             this.accountCheck = accCheck;
             this.getAccount = getAcc;
             ac = accs;
-            Formset();
+            Program.formset(this);
             this.Show();
             accountsView = createAccountsView(this.Width);
             createStatusGrid();
@@ -197,7 +200,6 @@ namespace ATM
         }
         private void updateTable()
         {
-            // TODO: investigate out of bounds error that pops up here
             for (int x = 0; x < accountsView.RowCount; x++)
             {
                 accountsView.Rows[x].Cells[0].Value = Convert.ToString(ac[x].getAccountNum());
@@ -211,7 +213,7 @@ namespace ATM
             {
                 new Thread(new ThreadStart(delegate
                 {
-                    Application.Run(new ATMForm(accountCheck, getAccount));
+                    Application.Run(new ATMForm(accountCheck, getAccount, this.tlock));
                 })).Start();
             }
         }
@@ -222,8 +224,6 @@ namespace ATM
             // thread no
             // type
             // value 
-
-
 
             this.statusGrid = new DataGridView();
             statusGrid.Size = new Size(this.Width, 140);
@@ -286,18 +286,9 @@ namespace ATM
                 curRow[1] = Convert.ToString(ac[x].getBalance());
                 curRow[2] = Convert.ToString(ac[x].getAtmCount());
                 accountsDataGridView.Rows.Add(curRow);
-                Debug.Print(Convert.ToString(ac[x].getAccountNum()) + " " + Convert.ToString(ac[x].getAtmCount()));
+                //Debug.Print(Convert.ToString(ac[x].getAccountNum()) + " " + Convert.ToString(ac[x].getAtmCount()));
             }
             return accountsDataGridView;
-        }
-        private void Formset()
-        {
-            this.Width = 500;
-            this.Height = 500;
-            this.MaximumSize = this.Size;
-            this.MinimumSize = this.Size;
-            this.BackColor = Color.White;
-
         }
     }
     public partial class ATMForm : Form
@@ -305,6 +296,7 @@ namespace ATM
         private Panel screenBack;
         private Label accountNumberTextBox;
         private Label pinNumberTextBox;
+        private string pinNumberAsString = "";
         private Button[] controlButtons;
         private bool loggedIn = false;
         private Label infoMessageLabel;
@@ -314,21 +306,22 @@ namespace ATM
         private Func<int, Account> getAccount;
         private Button[,] buttonsSide;
         private Account account;
-
+        private bool tlock;
 
         private bool mainScreen = false;
         private bool withdrawing = false;
         private bool returningCard = false;
         private bool showingBalance = false;
+        private bool lockControls = false;
+        private bool showingWithdraw = false;
         private int curThread = -1;
-        public ATMForm(Func<string[], bool> accCheck, Func<int, Account> getAcc)
+        public ATMForm(Func<string[], bool> accCheck, Func<int, Account> getAcc, bool threadLock)
         {
-
-
+            this.tlock = threadLock;
             this.accountCheck = accCheck;
             this.getAccount = getAcc;
 
-            Formset(this);
+            Program.formset(this);
             numberButtons = new Button[3, 3];
             int st = 1;
             for (int n = 0; n < 3; n++) // Loop for each button
@@ -353,10 +346,12 @@ namespace ATM
             reset();
 
             Label t = new Label();
-            t.Text = Convert.ToString(Thread.CurrentThread.ManagedThreadId);
+            this.Text = "ATM # : " + Convert.ToString(Thread.CurrentThread.ManagedThreadId) + ((this.tlock == true) ? " | Thread Safe" : " | Thread Unsafe");
+            t.AutoSize = true;
             this.curThread = Thread.CurrentThread.ManagedThreadId;
-            t.Location = new Point(Width / 2, 0);
-            Controls.Add(t); //TODO: remove
+            t.Location = new Point(0, 0);
+            t.TextAlign = ContentAlignment.MiddleCenter;
+            Controls.Add(t);
         }
         private void reset()
         {
@@ -367,6 +362,8 @@ namespace ATM
             this.loggedIn = false;
             this.mainScreen = false;
             this.showingBalance = false;
+            this.lockControls = false;
+            this.showingWithdraw = false;
             loginAtmScreen();
 
         }
@@ -379,7 +376,7 @@ namespace ATM
         }
         private void numberButtonHandler(object sender, EventArgs e, int num)
         {
-            if (returningCard)
+            if (returningCard || lockControls)
             {
                 return;
             }
@@ -397,20 +394,14 @@ namespace ATM
                 {
                     return;
                 }
-                this.pinNumberTextBox.Text += Convert.ToString(num);
+                this.pinNumberTextBox.Text += "*";
+                this.pinNumberAsString += Convert.ToString(num);
+                //TODO : CHANGE THIS ?
+                //this.pinNumberTextBox.Text += Convert.ToString(num);
 
             }
             //Debug.Print(Convert.ToString(num));
 
-        }
-        public Form Formset(Form pl)
-        {
-            pl.Width = 500;
-            pl.Height = 500;
-            pl.MaximumSize = this.Size;
-            pl.MinimumSize = this.Size;
-            pl.BackColor = Color.White;
-            return pl;
         }
 
         public void atmClose(object sender2, EventArgs e, int account)
@@ -481,8 +472,17 @@ namespace ATM
         }
         private void cancelButtonHandler(object sender, EventArgs e)
         {
-            if (returningCard)
+            if (returningCard || lockControls)
             {
+                if (lockControls && showingWithdraw)
+                {
+                    //return to menu
+
+                    lockControls = false;
+                    showingWithdraw = false;
+                    withdrawing = false;
+                    baseMenuScreen();
+                }
                 return;
             }
             if (!loggedIn)
@@ -497,7 +497,7 @@ namespace ATM
         }
         private void clearButtonHandler(object sender, EventArgs e)
         {
-            if (returningCard)
+            if (returningCard || lockControls)
             {
                 return;
             }
@@ -520,7 +520,7 @@ namespace ATM
         }
         private void enterButtonHandler(object sender, EventArgs e)
         {
-            if (returningCard)
+            if (returningCard || lockControls)
             {
                 return;
             }
@@ -546,7 +546,6 @@ namespace ATM
                             t.Start();
 
                         }
-                        //TODO: hide after certain time ?
 
                     }
                     else
@@ -561,22 +560,40 @@ namespace ATM
                 {
                     string[] accAndPin = new string[2];
                     accAndPin[0] = this.accountNumberTextBox.Text;
-                    accAndPin[1] = this.pinNumberTextBox.Text;
+                    accAndPin[1] = this.pinNumberAsString;
                     if (this.accountCheck(accAndPin))
                     {
                         loggedIn = true;
-
-                        Debug.Print("VALID ACCOUNT");
-                        this.account = getAccount(Convert.ToInt32(accAndPin[0])); //TODO: remove
+                        this.account = getAccount(Convert.ToInt32(accAndPin[0]));
                         this.account.incrementAtmCount();
-                        //this.account.decrementBalance(this.account.getBalance() / 2);
                         baseMenuScreen();
 
                     }
                     else
                     {
-                        //TODO: INVALID ACCOUNT AND PIN COMBINATION STUFF HERE
-                        loginAtmScreen();
+                        this.infoMessageLabel.Text = "INVALID PIN OR ACCOUNT NUMBER \n COMBINATION";
+                        this.infoMessageLabel.Height = screenBack.Height / 5;
+                        this.infoMessageLabel.Width = screenBack.Width;
+                        //this.infoMessageLabel.AutoSize = true;
+                        this.infoMessageLabel.TextAlign = ContentAlignment.MiddleCenter;
+                        this.infoMessageLabel.Location = new Point(0, screenBack.Height / 2);
+                        if (this.infoMessageLabel.Visible == false)
+                        {
+                            this.pinNumberTextBox.Hide();
+                            this.loginScreenLabel.Hide();
+                            this.infoMessageLabel.Show();
+                            System.Windows.Forms.Timer t = new System.Windows.Forms.Timer();
+                            t.Interval = 3000; // 3 seconds
+                            t.Tick += (s, n) =>
+                            {
+                                this.infoMessageLabel.Hide();
+                                loginAtmScreen();
+                                t.Stop();
+                            };
+                            t.Start();
+
+                        }
+
                     }
                 }
             }
@@ -682,6 +699,7 @@ namespace ATM
         }
         private void loginAtmScreen()
         {
+            this.pinNumberAsString = "";
             screenBack.Controls.Clear();
             infoMessageLabel = new Label();
             infoMessageLabel.Width = screenBack.Width;
@@ -721,7 +739,7 @@ namespace ATM
                 {
                     buttonsSide[x, n] = new Button(); // Create button
                     buttonsSide[x, n].SetBounds((x * 310) + 60, (n * 65) + 20, 50, 50); // Set size & position
-                    buttonsSide[x, n].Text = Convert.ToString(x) + " " + Convert.ToString(n); //TODO : REMOVE
+                    //buttonsSide[x, n].Text = Convert.ToString(x) + " " + Convert.ToString(n); //TODO : REMOVE
                     int one = x;
                     int two = n;
                     buttonsSide[x, n].Click += (sender, EventArgs) => { sideButtonsHandler(sender, EventArgs, one, two); };
@@ -738,23 +756,78 @@ namespace ATM
         private void withdraw(int amnt)
         {
             screenBack.Controls.Clear();
+            lockControls = true; // lock controls while doing stuff
+            Label attempting = new Label();
+            attempting.Text = "Attempting to withdraw £" + Convert.ToString(amnt);
+            attempting.TextAlign = ContentAlignment.MiddleCenter;
+            attempting.Width = screenBack.Width;
+            attempting.Location = new Point(0, screenBack.Height / 2);
+            screenBack.Controls.Add(attempting);
+            System.Windows.Forms.Timer t = new System.Windows.Forms.Timer();
+            t.Interval = 1;
+            t.Tick += (s, n) =>
+             {
 
-            Label test = new Label();
-            screenBack.Controls.Add(test);
-            test.Text = Convert.ToString(
-            account.withdrawAmnt(amnt, this.curThread));
-            Label test2 = new Label();
-            test2.Text = Convert.ToString(account.getBalance());
-            test2.Location = new Point(0, screenBack.Height / 2);
-            screenBack.Controls.Add(test2);
-            //do the checking if they have enough
-            // if so show success message for a time then redirect to something ?
-            //if not show unsuccessful screen , balance , requested amount
+                 if (account.withdrawAmnt(amnt, this.curThread, tlock))
+                 {
+                     screenBack.Controls.Clear();
+                     Label success = new Label();
+                     success.Text = "Successfully withdrew £" + Convert.ToString(amnt);
+                     success.TextAlign = ContentAlignment.MiddleCenter;
+                     success.Width = screenBack.Width;
+                     success.Location = new Point(0, screenBack.Height / 5);
+                     screenBack.Controls.Add(success);
+
+                     Label newBalance = new Label();
+                     newBalance.Text = "New Balance : £" + Convert.ToString(account.getBalance());
+                     newBalance.TextAlign = ContentAlignment.MiddleCenter;
+                     newBalance.Width = screenBack.Width;
+                     newBalance.Location = new Point(0, success.Location.Y + success.Height);
+                     screenBack.Controls.Add(newBalance);
+
+                     Label exitLabel = new Label();
+                     exitLabel.Text = "Press Cancel to Exit";
+                     exitLabel.TextAlign = ContentAlignment.MiddleCenter;
+                     exitLabel.Width = screenBack.Width;
+                     exitLabel.Location = new Point(0, newBalance.Location.Y + newBalance.Height);
+                     screenBack.Controls.Add(exitLabel);
+                     showingWithdraw = true;
+
+                 }
+                 else
+                 {
+                     screenBack.Controls.Clear();
+                     Label failure = new Label();
+                     failure.Text = "Failed to withdraw £" + Convert.ToString(amnt);
+                     failure.TextAlign = ContentAlignment.MiddleCenter;
+                     failure.Width = screenBack.Width;
+                     failure.Location = new Point(0, screenBack.Height / 5);
+                     screenBack.Controls.Add(failure);
+
+                     Label newBalance = new Label();
+                     newBalance.Text = "Balance : £" + Convert.ToString(account.getBalance());
+                     newBalance.TextAlign = ContentAlignment.MiddleCenter;
+                     newBalance.Width = screenBack.Width;
+                     newBalance.Location = new Point(0, failure.Location.Y + failure.Height);
+                     screenBack.Controls.Add(newBalance);
+
+                     Label exitLabel = new Label();
+                     exitLabel.Text = "Press Cancel to Exit";
+                     exitLabel.TextAlign = ContentAlignment.MiddleCenter;
+                     exitLabel.Width = screenBack.Width;
+                     exitLabel.Location = new Point(0, newBalance.Location.Y + newBalance.Height);
+                     screenBack.Controls.Add(exitLabel);
+                     showingWithdraw = true;
+                 }
+                 t.Stop();
+             };
+             t.Start();
+
 
         }
         private void sideButtonsHandler(object sender, EventArgs e, int one, int two)
         {
-            if (returningCard)
+            if (returningCard || lockControls)
             {
                 return;
             }
@@ -908,35 +981,52 @@ namespace ATM
          *   false if there are insufficent funds in the account
          */
         //https://www.pluralsight.com/guides/lock-statement-access-data
-        public Boolean withdrawAmnt(int amnt, int threadID)
+        public Boolean withdrawAmnt(int amnt, int threadID, bool threadLock)
         {
             //Program.sendStatusMessage(Convert.ToString(this.accountNum)+ "*" + Convert.ToString();
             Program.sendStatusMessage(DateTime.Now.ToString("h:mm:ss") +
                 "*" + Convert.ToString(this.accountNum) +
                 "*" + Convert.ToString(threadID) +
                 "*" + Convert.ToString("Access") +
-                "*" + "£" +Convert.ToString(amnt)
-                ); 
-            lock (withdrawLock)
-            {
-                Program.sendStatusMessage(DateTime.Now.ToString("h:mm:ss") +
-                "*" + Convert.ToString(this.accountNum) +
-                "*" + Convert.ToString(threadID) +
-                "*" + Convert.ToString("Withdraw") +
                 "*" + "£" + Convert.ToString(amnt)
                 );
-                Thread.Sleep(5000);
+            if (threadLock)
+            {
+                lock (withdrawLock)
+                {
+                    Program.sendStatusMessage(DateTime.Now.ToString("h:mm:ss") +
+                    "*" + Convert.ToString(this.accountNum) +
+                    "*" + Convert.ToString(threadID) +
+                    "*" + Convert.ToString("Withdraw") +
+                    "*" + "£" + Convert.ToString(amnt)
+                    );
+                    //Thread.Sleep(5000);
+
+                    return decrementBalance(amnt);
+
+                }
+            }
+            else
+            {
+                Program.sendStatusMessage(DateTime.Now.ToString("h:mm:ss") +
+                    "*" + Convert.ToString(this.accountNum) +
+                    "*" + Convert.ToString(threadID) +
+                    "*" + Convert.ToString("Withdraw") +
+                    "*" + "£" + Convert.ToString(amnt)
+                    );
+                //Thread.Sleep(5000);
 
                 return decrementBalance(amnt);
-
             }
 
         }
         public Boolean decrementBalance(int amount)
         {
-            if (this.balance > amount)
+            if (this.balance >= amount)
             {
+                Thread.Sleep(3000);
                 balance -= amount;
+                Thread.Sleep(3000);
                 return true;
             }
             else

@@ -1,0 +1,10 @@
+C:\AC22005-Group5-CSharpATM\ATM\bin\Release\ATM.exe.config
+C:\AC22005-Group5-CSharpATM\ATM\bin\Release\ATM.exe
+C:\AC22005-Group5-CSharpATM\ATM\bin\Release\ATM.pdb
+C:\AC22005-Group5-CSharpATM\ATM\obj\Release\ATM.csprojAssemblyReference.cache
+C:\AC22005-Group5-CSharpATM\ATM\obj\Release\ATM.BaseForm.resources
+C:\AC22005-Group5-CSharpATM\ATM\obj\Release\ATM.Properties.Resources.resources
+C:\AC22005-Group5-CSharpATM\ATM\obj\Release\ATM.csproj.GenerateResource.cache
+C:\AC22005-Group5-CSharpATM\ATM\obj\Release\ATM.csproj.CoreCompileInputs.cache
+C:\AC22005-Group5-CSharpATM\ATM\obj\Release\ATM.exe
+C:\AC22005-Group5-CSharpATM\ATM\obj\Release\ATM.pdb

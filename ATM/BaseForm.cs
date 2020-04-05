@@ -1210,29 +1210,29 @@ namespace ATM
             {
                 lock (withdrawLock) // lock inside here to one thread 
                 {
+                    bool result = decrementBalance(amnt);
+
                     Program.sendStatusMessage(DateTime.Now.ToString("HH:mm:ss") +
                     "*" + Convert.ToString(this.accountNum) +
                     "*" + Convert.ToString(threadID) +
-                    "*" + Convert.ToString("Withdraw") +
+                    "*" + (result == true ? "Withdraw-Success" : "Withdraw-Fail") +
                     "*" + "£" + Convert.ToString(amnt)
                     );
-
-
-                    return decrementBalance(amnt);
+                    return result;
 
                 }
             }
             else
             {
+                bool result = decrementBalance(amnt);
                 Program.sendStatusMessage(DateTime.Now.ToString("HH:mm:ss") +
                     "*" + Convert.ToString(this.accountNum) +
                     "*" + Convert.ToString(threadID) +
-                    "*" + Convert.ToString("Withdraw") +
+                    "*" + (result == true ? "Withdraw-Success" : "Withdraw-Fail") +
                     "*" + "£" + Convert.ToString(amnt)
                     );
+                return result;
 
-
-                return decrementBalance(amnt);
             }
 
         }

@@ -11,9 +11,9 @@ C:\AC22005-Group5-CSharpATM\ATM\bin\Debug\ATM.exe.config
 C:\AC22005-Group5-CSharpATM\ATM\bin\Debug\ATM.exe
 C:\AC22005-Group5-CSharpATM\ATM\bin\Debug\ATM.pdb
 C:\AC22005-Group5-CSharpATM\ATM\obj\Debug\ATM.csprojAssemblyReference.cache
-C:\AC22005-Group5-CSharpATM\ATM\obj\Debug\ATM.Form1.resources
 C:\AC22005-Group5-CSharpATM\ATM\obj\Debug\ATM.Properties.Resources.resources
 C:\AC22005-Group5-CSharpATM\ATM\obj\Debug\ATM.csproj.GenerateResource.cache
 C:\AC22005-Group5-CSharpATM\ATM\obj\Debug\ATM.csproj.CoreCompileInputs.cache
 C:\AC22005-Group5-CSharpATM\ATM\obj\Debug\ATM.exe
 C:\AC22005-Group5-CSharpATM\ATM\obj\Debug\ATM.pdb
+C:\AC22005-Group5-CSharpATM\ATM\obj\Debug\ATM.BaseForm.resources

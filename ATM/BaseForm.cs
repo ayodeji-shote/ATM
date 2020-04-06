@@ -442,7 +442,7 @@ namespace ATM
                 {
                     numberButtons[x, n] = new Button(); // Create button
                     st++;
-                    numberButtons[x, n].SetBounds((x * 60) + 110 + x, (n * 50) + 210 + n, 50, 50); // Set size & position
+                    numberButtons[x, n].SetBounds((x * 60) + 110, (n * 50) + 210, 50, 50); // Set size & position
                     int cur = st;
                     numberButtons[x, n].Click += (sender, EventArgs) => { numberButtonHandler(sender, EventArgs, cur - 1); }; // add the handler with number
                     numberButtons[x, n].BackColor = Color.Transparent;
@@ -472,30 +472,32 @@ namespace ATM
             this.cardIn = new PictureBox();
             this.cardIn.Image = Image.FromFile("IMAGES/" + images[0]);
             this.cardIn.Hide();
-            this.cardIn.Size = new System.Drawing.Size(160, 225);
-            this.cardIn.Location = new Point(this.Width - this.cardIn.Width - 50, this.Height - this.cardIn.Height - 100);
+            this.cardIn.SizeMode = PictureBoxSizeMode.StretchImage;
+            this.cardIn.Size = new System.Drawing.Size(160, 220);
+            this.cardIn.Location = new Point(this.Width - this.cardIn.Width - 50, buttonsSide[1, 2].Location.Y + buttonsSide[1, 2].Height + 5);
             this.Controls.Add(cardIn);
 
             this.cardOut = new PictureBox();
             this.cardOut.Image = Image.FromFile("IMAGES/" + "Card_Slot.png");
-            this.cardOut.Size = new System.Drawing.Size(160, 225);
-            this.cardOut.Location = new Point(this.Width - this.cardIn.Width - 50, this.Height - this.cardIn.Height - 100);
+            this.cardOut.SizeMode = PictureBoxSizeMode.StretchImage;
+            this.cardOut.Size = new System.Drawing.Size(160, 220);
+            this.cardOut.Location = new Point(this.Width - this.cardIn.Width - 50, buttonsSide[1, 2].Location.Y + buttonsSide[1, 2].Height + 5);
             this.Controls.Add(cardOut);
             this.cardOut.Hide();
 
             this.cashIn = new PictureBox();
             this.cashIn.Image = Image.FromFile("IMAGES/" + "Cash.png");
             this.cashIn.SizeMode = PictureBoxSizeMode.StretchImage;
-            this.cashIn.Size = new System.Drawing.Size(screenBack.Width, 108);
-            this.cashIn.Location = new Point(this.screenBack.Location.X, this.Height - this.cashIn.Height - 30);
+            this.cashIn.Size = new System.Drawing.Size(Convert.ToInt32(screenBack.Width * 1.5), 100);
+            this.cashIn.Location = new Point(this.screenBack.Location.X - Convert.ToInt32(screenBack.Width * .25), this.Height - this.cashIn.Height - 30);
             this.Controls.Add(cashIn);
             this.cashIn.Hide();
 
             this.cashOut = new PictureBox();
             this.cashOut.Image = Image.FromFile("IMAGES/" + "No Cash.png");
             this.cashOut.SizeMode = PictureBoxSizeMode.StretchImage;
-            this.cashOut.Size = new System.Drawing.Size(screenBack.Width, 108);
-            this.cashOut.Location = new Point(this.screenBack.Location.X, this.Height - this.cashIn.Height - 30);
+            this.cashOut.Size = new System.Drawing.Size(Convert.ToInt32(screenBack.Width * 1.5), 100);
+            this.cashOut.Location = new Point(this.screenBack.Location.X - Convert.ToInt32(screenBack.Width * .25), this.Height - this.cashIn.Height - 30);
             this.Controls.Add(cashOut);
             this.cashOut.Hide();
 
